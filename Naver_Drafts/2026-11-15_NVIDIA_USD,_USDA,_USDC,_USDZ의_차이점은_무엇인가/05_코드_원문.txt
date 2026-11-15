@@ -1,0 +1,31 @@
+코드 원문 백업 (필요한 경우에만 사용)
+
+[1] PYTHON 코드
+이미지 파일: images/이미지_05_code_python_b81b466d69.png
+
+#usda 1.0
+
+def Xform "Robot"
+{
+    def Cube "Body"
+    {
+        double size = 2
+    }
+}
+
+────────────────────────
+
+[2] PYTHON 코드
+이미지 파일: images/이미지_05_code_python_b81b466d69.png
+
+#usda 1.0
+
+def Xform "Robot"
+{
+    def Cube "Body"
+    {
+        double size = 2
+    }
+}
+
+────────────────────────
