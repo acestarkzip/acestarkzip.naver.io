@@ -136,21 +136,23 @@ def main() -> None:
     today_kst = datetime.now(KST).date()
     pages = query_database()
     candidates = []
+    start_date, end_date = date_window(today_kst)
 
-    # 날짜 제한 없이 전체 데이터베이스를 조회해 신규 페이지를 탐지합니다.
+    # 데이터베이스의 페이지 메타데이터는 조회하되, 지정된 날짜 범위의 글만 처리합니다.
     for page in pages:
         page_date = date_of(page)
         if page_date is None:
-            created = page.get("created_time", "")
-            try:
-                page_date = datetime.fromisoformat(created.replace("Z", "+00:00")).astimezone(KST).date()
-            except Exception:
-                print(f"[SKIP] 날짜/생성일을 확인할 수 없는 페이지: {title_of(page)}")
-                continue
+            print(f"[SKIP] 날짜 속성이 없거나 올바르지 않은 페이지: {title_of(page)}")
+            continue
+        if not start_date <= page_date <= end_date:
+            continue
         candidates.append((page_date, page))
 
     candidates.sort(key=lambda item: (item[0], title_of(item[1])))
-    print(f"[INFO] 전체 데이터베이스 검색: {len(candidates)}개 (날짜 제한 없음)")
+    print(
+        f"[INFO] 대상 날짜 범위 {start_date.isoformat()} ~ {end_date.isoformat()}: "
+        f"{len(candidates)}개"
+    )
     created = 0
     skipped = 0
 
