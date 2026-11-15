@@ -211,12 +211,11 @@ def main() -> None:
         image_names.extend(path.name for path in code_images if path.name not in image_names)
 
         (folder / "01_네이버_원고.html").write_text(
-            wrap_html(title, memo, body_html, tags, headings), encoding="utf-8"
+            wrap_html(title, body_html, tags, headings), encoding="utf-8"
         )
         text_content = "\n".join([
             title,
             "=" * min(len(title), 60),
-            memo,
             "",
             *text_lines,
             "",
@@ -240,6 +239,23 @@ def main() -> None:
         ]
         (folder / "04_발행_체크리스트.txt").write_text(
             "\n".join(checklist), encoding="utf-8"
+        )
+
+        usage_guide = [
+            "네이버 블로그 원고 사용 방법",
+            "",
+            "1. 이 초안 폴더 전체와 images 폴더를 함께 다운로드합니다.",
+            "2. 01_네이버_원고.html 파일을 Chrome 또는 Edge에서 엽니다.",
+            "3. 상단의 '제목 복사'를 눌러 네이버 블로그 제목란에 붙여넣습니다.",
+            "4. 상단의 '본문 복사'를 눌러 네이버 블로그 본문에 붙여넣습니다.",
+            "5. 이미지가 빠졌거나 깨졌다면 images 폴더의 파일을 해당 위치에 직접 업로드합니다.",
+            "6. 표·링크·코드 이미지가 네이버 편집기에서 잘 보이는지 확인한 뒤 발행합니다.",
+            "",
+            "참고: 네이버 편집기는 외부 HTML의 모든 스타일과 로컬 이미지 경로를 그대로 보존하지 않을 수 있습니다.",
+            "따라서 텍스트와 기본 서식을 먼저 붙여넣고, 이미지 표시만 마지막으로 확인하는 방식이 가장 안전합니다.",
+        ]
+        (folder / "00_네이버_블로그_사용방법.txt").write_text(
+            "\n".join(usage_guide), encoding="utf-8"
         )
 
         metadata = {

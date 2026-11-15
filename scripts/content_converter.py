@@ -39,6 +39,8 @@ def _rich_text_item(item: dict) -> str:
     raw = item.get("plain_text") or text_obj.get("content") or ""
     value = html.escape(raw, quote=False)
     value = value.replace("\r\n", "\n").replace("\r", "\n")
+    # Collapse excessive blank lines while preserving deliberate paragraph breaks.
+    value = re.sub(r"\n{3,}", "\n\n", value)
     # Rich-text blocks can contain intentional line breaks (especially callouts).
     value = value.replace("\n", "<br>\n")
     annotations = item.get("annotations") or {}
@@ -109,6 +111,7 @@ def _render_list(
 
 
 def _render_table(block: dict, lines: list[str]) -> str:
+    """Render a simple table using basic HTML that is easier to paste."""
     rows = block.get("_children") or []
     table_data = block.get("table") or {}
     has_column_header = bool(table_data.get("has_column_header"))
@@ -126,7 +129,8 @@ def _render_table(block: dict, lines: list[str]) -> str:
                 tag = "th"
             else:
                 tag = "td"
-            rendered.append(f"<{tag}>{cell_html}</{tag}>")
+            style = ' style="border:1px solid #d9d9d9;padding:7px 9px;text-align:left;"'
+            rendered.append(f"<{tag}{style}>{cell_html}</{tag}>")
             plain_cells.append(cell_text)
         if any(plain_cells):
             output.append("<tr>" + "".join(rendered) + "</tr>")
@@ -134,7 +138,10 @@ def _render_table(block: dict, lines: list[str]) -> str:
 
     if not output:
         return ""
-    return '<div class="table-wrap"><table><tbody>' + "".join(output) + "</tbody></table></div>"
+    return (
+        '<table style="border-collapse:collapse;width:100%;margin:14px 0;">'
+        "<tbody>" + "".join(output) + "</tbody></table>"
+    )
 
 
 def _media_url(data: dict) -> str:
@@ -201,10 +208,12 @@ def render_code_image(code: str, language: str, destination: Path) -> Path:
     destination.parent.mkdir(parents=True, exist_ok=True)
     display_code = code.expandtabs(4)
     lines = display_code.splitlines() or [""]
-    font = _code_font(17)
-    label_font = _code_font(13, bold=True)
+    # The image is displayed at roughly half its generated width in a typical
+    # blog column, so use a larger source font to keep pasted code readable.
+    font = _code_font(22)
+    label_font = _code_font(15, bold=True)
 
-    width, line_height, pad, header = 1500, 29, 30, 52
+    width, line_height, pad, header = 1200, 36, 30, 52
     max_text_width = width - (pad * 2)
 
     try:
@@ -287,9 +296,9 @@ def render_blocks(
     headings: list[dict[str, Any]] | None = None,
     heading_counts: dict[str, int] | None = None,
 ) -> str:
-    """Convert Notion blocks to clean semantic HTML and collect headings for a TOC."""
+    """Convert Notion blocks into a simple, copy-friendly Naver Blog article."""
     if depth > 20:
-        return '<p class="conversion-warning">[중첩 블록 깊이 제한]</p>'
+        return "<p>[중첩 콘텐츠 일부 생략]</p>"
 
     image_map = image_map or {}
     if headings is None:
@@ -316,44 +325,58 @@ def render_blocks(
             continue
 
         if kind == "paragraph":
-            if value:
+            if value.strip():
                 output.append(f"<p>{value}</p>")
-                lines.append(raw)
+                lines.append(raw.strip())
 
         elif kind in ("heading_1", "heading_2", "heading_3", "heading_4"):
-            if raw and not _is_toc_heading(raw):
-                # The page title is the only H1. Notion body H1/H2/H3 become H2/H3/H4.
-                level = int(kind[-1]) + 1
+            if raw.strip() and _is_toc_heading(raw):
+                # Place the generated TOC exactly where the author put the TOC heading.
+                output.append("<!-- NAVER_AUTO_TOC -->")
+            elif raw.strip():
+                # One page title (H1); all body headings use H2-H4 for a compact hierarchy.
+                level = min(int(kind[-1]) + 1, 4)
                 heading_id = _slugify_heading(raw, heading_counts)
-                headings.append({"level": level, "title": raw, "id": heading_id})
-                output.append(f'<h{level} id="{heading_id}">{value}</h{level}>')
-                lines.extend(["", raw, ""])
+                headings.append({"level": level, "title": raw.strip(), "id": heading_id})
+                heading_style = {
+                    2: "font-size:1.45em;font-weight:700;margin:1.6em 0 .55em;",
+                    3: "font-size:1.2em;font-weight:700;margin:1.25em 0 .45em;",
+                    4: "font-size:1.05em;font-weight:700;margin:1em 0 .35em;",
+                }[level]
+                output.append(f'<h{level} style="{heading_style}">{value}</h{level}>')
+                lines.extend(["", raw.strip(), ""])
 
         elif kind == "to_do":
-            if value:
+            if value.strip():
                 mark = "☑" if data.get("checked") else "☐"
-                output.append(f'<p class="todo">{mark} {value}</p>')
-                lines.append(f"{mark} {raw}")
+                output.append(f"<p>{mark} {value}</p>")
+                lines.append(f"{mark} {raw.strip()}")
 
         elif kind == "quote":
-            if value:
-                output.append(f"<blockquote>{value}</blockquote>")
-                lines.append("> " + raw)
+            if value.strip():
+                output.append(
+                    '<blockquote style="margin:12px 0;padding:8px 14px;'
+                    'border-left:3px solid #999;color:#444;">'
+                    f"{value}</blockquote>"
+                )
+                lines.append("> " + raw.strip())
 
         elif kind == "callout":
-            if value or children:
+            if value.strip() or children:
                 icon = data.get("icon") or {}
                 icon_text = icon.get("emoji") or "💡"
                 nested = render_blocks(
                     children, image_map, lines, depth + 1, code_image_dir,
                     headings, heading_counts,
                 )
+                content = f"<p><strong>{html.escape(icon_text)} {value}</strong></p>" if value else ""
                 output.append(
-                    f'<aside class="callout"><span>{html.escape(icon_text)}</span> '
-                    f'{value}{nested}</aside>'
+                    '<blockquote style="margin:14px 0;padding:10px 14px;'
+                    'border-left:4px solid #16a34a;background:#f7f9f7;">'
+                    f"{content}{nested}</blockquote>"
                 )
-                if raw:
-                    lines.append(f"{icon_text} {raw}")
+                if raw.strip():
+                    lines.append(f"{icon_text} {raw.strip()}")
 
         elif kind == "code":
             code = plain(data.get("rich_text") or [])
@@ -366,20 +389,21 @@ def render_blocks(
                     render_code_image(code, language_raw, image_path)
                     src = "images/" + image_path.name
                     output.append(
-                        '<figure class="code-image">'
-                        f'<img src="{html.escape(src, quote=True)}" '
-                        f'alt="{html.escape(language_raw + " code", quote=True)}">'
-                        f'<figcaption>{html.escape(language_raw)} 코드</figcaption></figure>'
+                        f'<p><img src="{html.escape(src, quote=True)}" '
+                        'style="display:block;max-width:100%;height:auto;margin:12px 0;" '
+                        f'alt="{html.escape(language_raw + " 코드", quote=True)}"></p>'
                     )
+                    output.append(f'<p><strong>{html.escape(language_raw.upper())} 코드</strong></p>')
                 else:
                     output.append(
-                        f'<pre data-language="{html.escape(language_raw, quote=True)}">'
+                        '<pre style="white-space:pre-wrap;overflow-wrap:anywhere;'
+                        'background:#f5f5f5;padding:12px;border:1px solid #e5e5e5;">'
                         f'<code>{html.escape(code)}</code></pre>'
                     )
                 lines.extend(["", f"```{language_raw}", code, "```", ""])
 
         elif kind == "divider":
-            output.append("<hr>")
+            output.append('<hr style="border:0;border-top:1px solid #ddd;margin:22px 0;">')
             lines.append("──────────")
 
         elif kind == "image":
@@ -388,14 +412,15 @@ def render_blocks(
             alt = html.escape(plain(caption_items), quote=True)
             src = image_map.get(block.get("id")) or _media_url(data)
             if src:
-                caption_html = f"<figcaption>{caption}</figcaption>" if caption else ""
                 output.append(
-                    f'<figure><img src="{html.escape(src, quote=True)}" alt="{alt}">'
-                    f"{caption_html}</figure>"
+                    f'<p><img src="{html.escape(src, quote=True)}" alt="{alt}" '
+                    'style="display:block;max-width:100%;height:auto;margin:14px auto;"></p>'
                 )
+                if caption:
+                    output.append(f"<p><small>{caption}</small></p>")
                 lines.append("[이미지: " + (plain(caption_items) or "설명 없음") + "]")
             else:
-                output.append('<p class="conversion-warning">[이미지 다운로드 실패]</p>')
+                output.append("<p>[이미지를 불러오지 못했습니다. 이미지 목록을 확인하세요.]</p>")
 
         elif kind in ("file", "pdf", "video", "audio", "bookmark", "embed", "link_preview"):
             url = _media_url(data) or data.get("url", "")
@@ -403,6 +428,11 @@ def render_blocks(
             title_value = data.get("title") or ""
             caption_text = plain(caption_value).strip() if isinstance(caption_value, list) else str(caption_value).strip()
             title_text = plain(title_value).strip() if isinstance(title_value, list) else str(title_value).strip()
+            description_value = data.get("description") or ""
+            description_text = (
+                plain(description_value).strip()
+                if isinstance(description_value, list) else str(description_value).strip()
+            )
             label = data.get("name") or caption_text or title_text
             if not label and url:
                 label = urlparse(url).netloc or url
@@ -411,9 +441,9 @@ def render_blocks(
             if url:
                 safe_url = html.escape(url, quote=True)
                 safe_label = html.escape(str(label))
-                output.append(
-                    f'<p class="attachment"><a href="{safe_url}">{safe_label}</a></p>'
-                )
+                output.append(f'<p>🔗 <a href="{safe_url}">{safe_label}</a></p>')
+                if description_text and description_text != str(label):
+                    output.append(f"<p>{html.escape(description_text)}</p>")
                 lines.append(f"[{label}]({url})")
 
         elif kind == "table":
@@ -424,27 +454,24 @@ def render_blocks(
         elif kind == "equation":
             expression = str(data.get("expression") or "").strip()
             if expression:
-                output.append(f'<p class="equation"><code>{html.escape(expression)}</code></p>')
+                output.append(f'<p><code>{html.escape(expression)}</code></p>')
                 lines.append(expression)
 
         elif kind == "toggle":
-            # Naver's editor does not reliably preserve HTML <details> toggles.
-            # Expand contents, but keep nested blocks visually grouped under the title.
-            if raw:
-                lines.append(raw)
+            # Toggle UI is flattened to a bold label and visible body for simple pasting.
             nested = render_blocks(
                 children, image_map, lines, depth + 1, code_image_dir,
                 headings, heading_counts,
             )
-            if raw:
-                nested_html = f'<div class="toggle-content">{nested}</div>' if nested else ""
+            if raw.strip():
+                output.append(f"<p><strong>▸ {value}</strong></p>")
+                lines.append(raw.strip())
+            if nested:
+                # Indent nested content with a basic blockquote instead of a custom toggle widget.
                 output.append(
-                    '<div class="toggle-block">'
-                    f'<p class="toggle-title"><strong>▸ {value}</strong></p>'
-                    f'{nested_html}</div>'
+                    '<blockquote style="margin:6px 0 12px 14px;padding-left:12px;'
+                    'border-left:2px solid #ddd;">' + nested + "</blockquote>"
                 )
-            elif nested:
-                output.append(nested)
 
         elif kind in ("column_list", "column", "synced_block", "template"):
             nested = render_blocks(
@@ -452,7 +479,7 @@ def render_blocks(
                 headings, heading_counts,
             )
             if nested:
-                output.append(f'<div class="notion-{kind}">{nested}</div>')
+                output.append(nested)
 
         elif kind in ("child_page", "child_database"):
             label = str(data.get("title") or "하위 페이지").strip()
@@ -460,11 +487,11 @@ def render_blocks(
                 output.append(f"<p><strong>{html.escape(label)}</strong></p>")
                 lines.append(label)
 
-        elif value:
+        elif value.strip():
+            # Unknown blocks: keep readable text rather than emitting Notion-specific markup.
             output.append(f"<p>{value}</p>")
-            lines.append(raw)
+            lines.append(raw.strip())
 
-        # Render children for block types whose children were not handled above.
         handled_children = {
             "callout", "toggle", "column_list", "column", "synced_block", "template",
             "table", "bulleted_list_item", "numbered_list_item",
@@ -478,43 +505,46 @@ def render_blocks(
                 output.append(nested)
         index += 1
 
-    return "\n".join(part for part in output if part.strip())
+    rendered = "\n".join(part for part in output if part.strip())
+    if "<!-- NAVER_AUTO_TOC -->" in rendered:
+        rendered = rendered.replace("<!-- NAVER_AUTO_TOC -->", _render_toc(headings))
+    return rendered
 
 
 def _render_toc(headings: list[dict[str, Any]]) -> str:
-    # Footer/contact information remains in the article but is not a content TOC entry.
+    # Create a simple text/list TOC; no internal anchors are required for Naver.
     visible_headings = [
         heading for heading in headings
         if re.sub(r"[^\w가-힣]+", "", str(heading.get("title", "")), flags=re.UNICODE).lower()
         not in {"contactus", "연락처"}
     ]
-    if not visible_headings:
+    if len(visible_headings) < 2:
         return ""
+
     items = []
     for heading in visible_headings:
-        level = int(heading.get("level", 2))
+        level = max(2, min(int(heading.get("level", 2)), 4))
+        indent = (level - 2) * 16
         title = html.escape(str(heading.get("title", "")))
-        heading_id = html.escape(str(heading.get("id", "")), quote=True)
         items.append(
-            f'<li class="toc-level-{level}"><a href="#{heading_id}">{title}</a></li>'
+            f'<li style="margin:4px 0 4px {indent}px;">{title}</li>'
         )
     return (
-        '<nav class="table-of-contents" aria-label="목차">'
-        '<h2>📚 목차</h2><ol>' + "".join(items) + "</ol></nav>"
+        '<p style="margin:18px 0 6px;"><strong>📚 목차</strong></p>'
+        '<ul style="list-style-type:disc;margin:0 0 22px;padding-left:24px;">'
+        + "".join(items) + "</ul>"
     )
 
 
 def wrap_html(
-    title: str, memo: str, body: str, tags: list[str],
+    title: str, body: str, tags: list[str],
     headings: list[dict[str, Any]] | None = None,
 ) -> str:
-    """Create a standalone browser preview; final Naver formatting must be checked in-editor."""
-    tag_html = " ".join("#" + html.escape(tag) for tag in tags)
+    # Create a simple preview with separate title/body copy controls.
     safe_title = html.escape(title)
-    safe_memo = html.escape(memo)
-    toc_html = _render_toc(headings or [])
-    memo_html = f"<p>{safe_memo}</p>" if memo else ""
-    tags_html = f'<p class="tags">{tag_html}</p>' if tag_html else ""
+    tag_html = " ".join("#" + html.escape(tag) for tag in tags)
+    # Database date/memo fields stay in metadata.json and are not inserted into the public post.
+    tags_html = f'<p style="margin-top:20px;color:#16803c;">{tag_html}</p>' if tag_html else ""
 
     return f'''<!doctype html>
 <html lang="ko">
@@ -523,46 +553,61 @@ def wrap_html(
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{safe_title}</title>
 <style>
-body {{ font-family: Arial, 'Malgun Gothic', 'Noto Sans CJK KR', sans-serif; line-height: 1.85; max-width: 820px; margin: 32px auto; padding: 0 20px; color: #222; }}
-header {{ margin-bottom: 28px; }}
-header h1 {{ font-size: 2em; line-height: 1.35; margin: 0 0 12px; }}
-main h2 {{ margin-top: 2em; font-size: 1.55em; }}
-main h3 {{ margin-top: 1.6em; font-size: 1.25em; }}
-main h4 {{ margin-top: 1.3em; font-size: 1.08em; }}
-main h5 {{ margin-top: 1.1em; font-size: 1em; }}
-p {{ margin: 0.8em 0; }}
-img {{ max-width: 100%; height: auto; }}
-figure {{ margin: 1.4em 0; }}
-.code-image img {{ display:block; width:100%; border-radius:10px; }}
-pre {{ overflow-x: auto; white-space: pre-wrap; background: #f3f3f3; padding: 14px; border-radius: 6px; }}
-code {{ font-family: Consolas, 'Noto Sans Mono CJK KR', monospace; }}
-blockquote {{ border-left: 4px solid #888; padding: 8px 16px; margin-left: 0; background: #f7f7f7; }}
-.callout {{ padding: 12px 16px; background: #f4f7fb; border-radius: 6px; }}
-.table-wrap {{ overflow-x: auto; }}
-table {{ width: 100%; border-collapse: collapse; margin: 16px 0; }}
-th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
-figcaption {{ color: #666; font-size: .9em; margin-top: 6px; }}
-.todo {{ list-style: none; }}
-.conversion-warning {{ color: #b45309; }}
-a {{ overflow-wrap: anywhere; }}
-.table-of-contents {{ border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 20px; margin: 24px 0 32px; background: #fafafa; }}
-.table-of-contents h2 {{ margin: 0 0 8px; font-size: 1.2em; }}
-.table-of-contents ol {{ margin: 0; padding-left: 24px; }}
-.table-of-contents li {{ margin: 4px 0; }}
-.table-of-contents .toc-level-3 {{ margin-left: 18px; list-style-type: lower-alpha; }}
-.table-of-contents .toc-level-4 {{ margin-left: 36px; list-style-type: circle; }}
-.toggle-block {{ margin: 10px 0; }}
-.toggle-title {{ margin: 12px 0 4px; }}
-.toggle-content {{ margin-left: 22px; padding-left: 14px; border-left: 2px solid #d1d5db; }}
-.tags {{ color: #16803c; }}
+body {{ font-family: Arial, 'Malgun Gothic', 'Noto Sans CJK KR', sans-serif; line-height: 1.75; max-width: 820px; margin: 28px auto; padding: 0 18px; color: #222; }}
+.copy-tools {{ position: sticky; top: 0; z-index: 10; padding: 10px; margin: 0 -18px 20px; background: #f3f6f3; border-bottom: 1px solid #dfe6df; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }}
+.copy-tools button {{ border: 0; border-radius: 6px; background: #16803c; color: white; padding: 10px 16px; font-weight: 700; cursor: pointer; }}
+.copy-tools small {{ color: #555; }}
+.preview-title {{ font-size: 30px; line-height: 1.35; margin: 8px 0 18px; }}
+article h2 {{ font-size: 24px; margin: 30px 0 12px; }}
+article h3 {{ font-size: 20px; margin: 24px 0 9px; }}
+article h4 {{ font-size: 17px; margin: 18px 0 8px; }}
+article p {{ margin: 10px 0; }}
+article img {{ max-width: 100%; height: auto; }}
+article ul, article ol {{ padding-left: 26px; margin: 10px 0; }}
+article li {{ margin: 5px 0; }}
+article a {{ color: #145da0; text-decoration: underline; }}
+article pre {{ white-space: pre-wrap; overflow-wrap: anywhere; background: #f5f5f5; padding: 12px; }}
+article blockquote {{ margin: 12px 0; }}
+@media print {{ .copy-tools {{ display:none; }} body {{ max-width:none; margin:0; }} }}
 </style>
 </head>
 <body>
-<header><h1>{safe_title}</h1>{memo_html}{tags_html}</header>
-{toc_html}
+<div class="copy-tools" aria-label="원고 복사 도구">
+  <button type="button" id="copyTitleButton">제목 복사</button>
+  <button type="button" id="copyBodyButton">본문 복사</button>
+  <small id="copyStatus">제목과 본문을 각각 복사해 네이버 블로그 제목란과 본문에 붙여넣으세요.</small>
+</div>
+<h1 class="preview-title" id="naverTitle">{safe_title}</h1>
+<article id="naverBody">
 <main>
 {body}
 </main>
+{tags_html}
+</article>
+<script>
+(function () {{
+  const status = document.getElementById('copyStatus');
+  function copySelection(element, message) {{
+    const selection = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    let copied = false;
+    try {{ copied = document.execCommand('copy'); }} catch (error) {{ copied = false; }}
+    selection.removeAllRanges();
+    status.textContent = copied
+      ? message
+      : '자동 복사에 실패했습니다. 해당 영역을 선택해 Ctrl+C 하세요.';
+  }}
+  document.getElementById('copyTitleButton').addEventListener('click', function () {{
+    copySelection(document.getElementById('naverTitle'), '제목을 복사했습니다. 네이버 블로그 제목란에 붙여넣으세요.');
+  }});
+  document.getElementById('copyBodyButton').addEventListener('click', function () {{
+    copySelection(document.getElementById('naverBody'), '본문을 복사했습니다. 네이버 블로그 본문에 붙여넣으세요.');
+  }});
+}})();
+</script>
 </body>
 </html>
 '''

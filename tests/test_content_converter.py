@@ -24,8 +24,8 @@ def test_headings_and_code():
         {"type": "code", "code": {"rich_text": [rt("print('한글')")], "language": "python"}, "_children": []},
     ]
     html = render_blocks(blocks, {}, [])
-    assert '<h2 id="제목-1">제목 1</h2>' in html
-    assert '<h3 id="제목-2">제목 2</h3>' in html
+    assert '<h2 style=' in html and '제목 1</h2>' in html
+    assert '<h3 style=' in html and '제목 2</h3>' in html
     assert "print(&#x27;한글&#x27;)" in html or "print('한글')" in html
 
 
@@ -59,7 +59,8 @@ def test_table():
         }],
     }
     html = render_blocks([block], {}, [])
-    assert "<table>" in html and "<th>이름</th>" in html and "<td>로봇</td>" in html
+    assert "<table style=" in html and "<th style=" in html
+    assert "이름</th>" in html and "로봇</td>" in html
 
 
 def test_image_map():
@@ -70,9 +71,11 @@ def test_image_map():
 
 
 def test_wrap_html():
-    output = wrap_html("테스트", "메모", "<p>본문</p>", ["로봇"])
+    output = wrap_html("테스트", "<p>본문</p>", ["로봇"])
     assert "<title>테스트</title>" in output
     assert "#로봇" in output and "<p>본문</p>" in output
+    assert 'id="copyTitleButton"' in output
+    assert 'id="copyBodyButton"' in output
 
 
 def test_body_headings_are_demoted_and_toc_is_generated():
@@ -84,14 +87,14 @@ def test_body_headings_are_demoted_and_toc_is_generated():
     ]
     headings = []
     body = render_blocks(blocks, {}, [], headings=headings)
-    output = wrap_html("테스트 글", "", body, [], headings)
+    output = wrap_html("테스트 글", body, [], headings)
 
-    assert output.count("<h1") == 1
-    assert '<h2 id="오늘의-진행-내용">오늘의 진행 내용</h2>' in output
-    assert '<h3 id="세부-주제">세부 주제</h3>' in output
-    assert '<h4 id="추가-설명">추가 설명</h4>' in output
-    assert '<a href="#오늘의-진행-내용">오늘의 진행 내용</a>' in output
-    assert output.count("📚 목차") == 1
+    assert output.count("<h1") == 1  # Preview title; body headings start at H2.
+    assert '<h2 style=' in output and '오늘의 진행 내용</h2>' in output
+    assert '<h3 style=' in output and '세부 주제</h3>' in output
+    assert '<h4 style=' in output and '추가 설명</h4>' in output
+    assert "📚 목차" in output and "오늘의 진행 내용</li>" in output and "<ul style=\"list-style-type:disc" in output
+    assert '<a href="#' not in output
 
 
 def test_empty_blocks_and_empty_caption_are_removed():
@@ -135,8 +138,9 @@ def test_duplicate_heading_slugs_are_unique():
     headings = []
     output = render_blocks(blocks, {}, [], headings=headings)
 
-    assert 'id="반복-제목"' in output
-    assert 'id="반복-제목-2"' in output
+    assert len(headings) == 2
+    assert headings[0]["id"] == "반복-제목"
+    assert headings[1]["id"] == "반복-제목-2"
 
 
 def test_code_image_is_created_with_korean_text(tmp_path):
@@ -162,7 +166,7 @@ def test_code_image_overwrites_old_generated_file(tmp_path):
     assert destination.read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
 
 
-def test_heading_4_is_preserved_as_h5_and_in_toc():
+def test_heading_4_is_simplified_to_h4_and_in_plain_toc():
     blocks = [{
         "type": "heading_4",
         "heading_4": {"rich_text": [rt("a. 더더 깊은 세부 내용")]},
@@ -170,10 +174,10 @@ def test_heading_4_is_preserved_as_h5_and_in_toc():
     }]
     headings = []
     body = render_blocks(blocks, {}, [], headings=headings)
-    output = wrap_html("테스트", "", body, [], headings)
+    output = wrap_html("테스트", body, [], headings)
 
-    assert '<h5 id="a-더더-깊은-세부-내용">a. 더더 깊은 세부 내용</h5>' in output
-    assert 'href="#a-더더-깊은-세부-내용"' in output
+    assert '<h4 style=' in output and 'a. 더더 깊은 세부 내용</h4>' in output
+    assert 'a. 더더 깊은 세부 내용' in output
 
 
 def test_bookmark_caption_is_preserved_instead_of_generic_type_name():
@@ -199,11 +203,11 @@ def test_contact_heading_stays_in_body_but_is_excluded_from_toc():
     }]
     headings = []
     body = render_blocks(blocks, {}, [], headings=headings)
-    output = wrap_html("테스트", "", body, [], headings)
+    output = wrap_html("테스트", body, [], headings)
 
     assert "Contact us" in body
-    assert 'id="contact-us"' in body
-    assert 'href="#contact-us"' not in output
+    assert '<h2 style=' in body
+    assert 'Contact us</li>' not in output
 
 
 def test_toggle_children_remain_nested_under_parent_title():
@@ -223,10 +227,35 @@ def test_toggle_children_remain_nested_under_parent_title():
     output = render_blocks(blocks, {}, [])
 
     assert output.index("상위 토글") < output.index("하위 토글") < output.index("하위 내용")
-    assert output.count('class="toggle-block"') == 2
-    assert output.count('class="toggle-content"') == 2
+    assert output.count("<blockquote") == 2
+    assert "<details>" not in output
+    assert 'class="toggle-' not in output
 
 
 def test_rich_text_newlines_become_html_line_breaks():
     output = rich_text([rt("첫 번째 줄\n두 번째 줄")])
     assert "첫 번째 줄<br>\n두 번째 줄" in output
+
+
+def test_html_has_separate_title_and_body_copy_targets():
+    output = wrap_html("제목", "<p>본문입니다.</p>", ["로봇"])
+    assert 'id="naverTitle">제목</h1>' in output
+    assert 'id="naverBody"' in output
+    body_section = output.split('<article id="naverBody">', 1)[1].split('</article>', 1)[0]
+    assert "제목" not in body_section
+    assert "본문입니다." in body_section
+    assert "#로봇" in body_section
+    assert "메모" not in body_section
+
+
+def test_copy_friendly_output_uses_common_html_only():
+    blocks = [{
+        "type": "callout",
+        "callout": {"rich_text": [rt("도입 내용")], "icon": {"type": "emoji", "emoji": "📌"}},
+        "_children": [],
+    }]
+    output = render_blocks(blocks, {}, [])
+    assert "<blockquote" in output
+    assert "<aside" not in output
+    assert 'class="callout"' not in output
+    assert "도입 내용" in output
