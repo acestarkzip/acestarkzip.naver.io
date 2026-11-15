@@ -6,12 +6,39 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from exporter import date_window
 
 
-def test_date_window_is_today_only():
-    assert date_window(date(2026, 11, 15)) == (date(2026, 11, 15), date(2026, 11, 15))
+def test_date_window_today():
+    today = date(2026, 11, 15)
+    assert date_window(today, "Today") == (today, today)
 
 
-def test_date_window_is_today_only_at_month_and_year_boundaries():
-    assert date_window(date(2027, 1, 1)) == (date(2027, 1, 1), date(2027, 1, 1))
+def test_date_window_yesterday():
+    today = date(2026, 11, 15)
+    yesterday = date(2026, 11, 14)
+    assert date_window(today, "Yesterday") == (yesterday, yesterday)
+
+
+def test_date_window_week_includes_today_and_previous_six_days():
+    today = date(2026, 11, 15)
+    assert date_window(today, "Week") == (date(2026, 11, 9), today)
+
+
+def test_date_window_month_starts_on_first_day():
+    today = date(2026, 11, 15)
+    assert date_window(today, "Month") == (date(2026, 11, 1), today)
+
+
+def test_date_window_all_has_no_boundaries():
+    assert date_window(date(2026, 11, 15), "ALL") == (None, None)
+
+
+def test_date_window_handles_year_boundary_for_yesterday():
+    assert date_window(date(2027, 1, 1), "Yesterday") == (date(2026, 12, 31), date(2026, 12, 31))
+
+
+def test_date_window_rejects_unknown_scope():
+    import pytest
+    with pytest.raises(ValueError, match="지원하지 않는 조회 범위"):
+        date_window(date(2026, 11, 15), "LastYear")
 
 
 

@@ -6,7 +6,7 @@ import json
 import mimetypes
 import zipfile
 from pathlib import Path
-from datetime import datetime, date, timezone
+from datetime import datetime, date, timezone, timedelta
 from zoneinfo import ZoneInfo
 from urllib.parse import urlparse, unquote
 
@@ -191,9 +191,36 @@ def build_post_body_text(body_text: str) -> str:
     body = (body_text or "").strip()
     return body + "\n" if body else ""
 
-def date_window(today: date) -> tuple[date, date]:
-    # 테스트 모드: 한국시간 기준 오늘 날짜의 글만 처리
-    return today, today
+DATE_SCOPE_OPTIONS = ("Today", "Yesterday", "Week", "Month", "ALL")
+
+
+def date_window(
+    today: date, scope: str = "Today"
+) -> tuple[date | None, date | None]:
+    """Return an inclusive KST calendar-date window for the selected scope.
+
+    Today: today only
+    Yesterday: yesterday only
+    Week: the latest 7 calendar days, including today
+    Month: the first day of this month through today
+    ALL: no date boundary
+    """
+    normalized = (scope or "Today").strip().lower()
+    if normalized == "today":
+        return today, today
+    if normalized == "yesterday":
+        yesterday = today - timedelta(days=1)
+        return yesterday, yesterday
+    if normalized == "week":
+        return today - timedelta(days=6), today
+    if normalized == "month":
+        return today.replace(day=1), today
+    if normalized == "all":
+        return None, None
+    raise ValueError(
+        f"지원하지 않는 조회 범위입니다: {scope!r}. "
+        f"사용 가능 값: {', '.join(DATE_SCOPE_OPTIONS)}"
+    )
 
 
 def main() -> None:
@@ -205,24 +232,44 @@ def main() -> None:
 
     processed = tracker.setdefault("pages", {})
     today_kst = datetime.now(KST).date()
-    start_date, end_date = date_window(today_kst)
-    # Notion API 단계에서 오늘 날짜에 해당하는 페이지만 조회합니다.
-    pages = query_database(date_property=DATE_PROP, on_date=today_kst.isoformat())
+    date_scope = os.getenv("NAVER_DATE_SCOPE", "Today").strip() or "Today"
+    start_date, end_date = date_window(today_kst, date_scope)
+
+    # API 단계에서 가능한 한 범위를 좁혀 조회합니다. ALL인 경우에만 전체 페이지를 조회합니다.
+    if start_date is None and end_date is None:
+        pages = query_database()
+    else:
+        pages = query_database(
+            date_property=DATE_PROP,
+            start_date=start_date.isoformat() if start_date else None,
+            end_date=end_date.isoformat() if end_date else None,
+        )
     candidates = []
 
-    # 안전을 위해 반환된 페이지의 날짜도 한 번 더 확인합니다.
+    # API 결과 날짜를 한 번 더 확인해 범위 밖 게시물이 섞이지 않도록 합니다.
     for page in pages:
         page_date = date_of(page)
         if page_date is None:
             print(f"[SKIP] 날짜 속성이 없거나 올바르지 않은 페이지: {title_of(page)}")
             continue
-        if not start_date <= page_date <= end_date:
+        if start_date is not None and page_date < start_date:
+            continue
+        if end_date is not None and page_date > end_date:
             continue
         candidates.append((page_date, page))
 
     candidates.sort(key=lambda item: (item[0], title_of(item[1])))
+    if start_date is None and end_date is None:
+        scope_description = "전체 기간"
+    elif start_date == end_date:
+        scope_description = start_date.isoformat()
+    else:
+        scope_description = (
+            f"{start_date.isoformat() if start_date else '시작 제한 없음'} ~ "
+            f"{end_date.isoformat() if end_date else '종료 제한 없음'}"
+        )
     print(
-        f"[INFO] 한국시간 오늘 날짜 {today_kst.isoformat()} 대상: "
+        f"[INFO] 한국시간 조회 범위 {date_scope} ({scope_description}) 대상: "
         f"{len(candidates)}개"
     )
     created = 0
@@ -462,8 +509,9 @@ def main() -> None:
 
     tracker["last_scan"] = datetime.now(timezone.utc).isoformat()
     tracker["scan_window"] = {
-        "start": start_date.isoformat(),
-        "end": end_date.isoformat(),
+        "scope": date_scope,
+        "start": start_date.isoformat() if start_date else None,
+        "end": end_date.isoformat() if end_date else None,
         "timezone": "Asia/Seoul",
     }
     TRACKER.write_text(json.dumps(tracker, ensure_ascii=False, indent=2), encoding="utf-8")

@@ -2,10 +2,23 @@ name: Naver Blog Drafts
 
 on:
   schedule:
-    # 매일 한국시간 07:17, 19:17 (GitHub Actions cron은 UTC)
-    - cron: "17 22,10 * * *"
+    # KST 07:17 = UTC 22:17 (전날 실행): 어제 작성한 글
+    - cron: "17 22 * * *"
+    # KST 19:17 = UTC 10:17 (당일 실행): 오늘 작성한 글
+    - cron: "17 10 * * *"
   workflow_dispatch:
     inputs:
+      date_scope:
+        description: "조회 범위: Today(오늘), Yesterday(어제), Week(최근 7일, 오늘 포함), Month(이번 달 1일~오늘), ALL(전체)"
+        required: true
+        type: choice
+        options:
+          - Today
+          - Yesterday
+          - Week
+          - Month
+          - ALL
+        default: Today
       update_existing:
         description: "이미 생성된 미발행 초안도 Notion 수정 내용으로 갱신"
         required: false
@@ -42,7 +55,30 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Scan recent Notion posts and create Naver drafts
+      - name: Resolve date scope
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          SCHEDULE_CRON: ${{ github.event.schedule }}
+          MANUAL_DATE_SCOPE: ${{ inputs.date_scope }}
+        run: |
+          if [[ "$EVENT_NAME" == "schedule" ]]; then
+            case "$SCHEDULE_CRON" in
+              "17 22 * * *") SCOPE="Yesterday" ;;
+              "17 10 * * *") SCOPE="Today" ;;
+              *) echo "알 수 없는 schedule cron: $SCHEDULE_CRON"; exit 1 ;;
+            esac
+          else
+            SCOPE="${MANUAL_DATE_SCOPE:-Today}"
+            case "$SCOPE" in
+              Today|Yesterday|Week|Month|ALL) ;;
+              *) echo "잘못된 수동 조회 범위: $SCOPE"; exit 1 ;;
+            esac
+          fi
+          echo "NAVER_DATE_SCOPE=$SCOPE" >> "$GITHUB_ENV"
+          echo "조회 범위: $SCOPE"
+
+      - name: Scan Notion posts and create Naver drafts
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}

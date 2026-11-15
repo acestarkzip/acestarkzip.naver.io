@@ -61,22 +61,45 @@ def request(method: str, path: str, **kwargs: Any) -> dict:
 def query_database(
     date_property: str | None = None,
     on_date: str | None = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
 ) -> list[dict]:
-    """Return database pages, optionally filtering a Notion date property to one day."""
+    """Query all pages or filter a Notion date property by one day or a range.
+
+    - on_date: exact calendar date
+    - start_date / end_date: inclusive date range; either boundary may be omitted
+    - no date arguments: all pages (ALL manual scope)
+    """
     if not DB:
         raise RuntimeError("NOTION_DATABASE_ID가 설정되지 않았습니다.")
-    if (date_property is None) != (on_date is None):
-        raise ValueError("date_property와 on_date는 함께 지정해야 합니다.")
+
+    if on_date and (start_date is not None or end_date is not None):
+        raise ValueError("on_date와 날짜 범위(start_date/end_date)는 함께 사용할 수 없습니다.")
+
+    has_date_filter = on_date is not None or start_date is not None or end_date is not None
+    if has_date_filter and not date_property:
+        raise ValueError("날짜 필터를 사용하려면 date_property가 필요합니다.")
+
+    date_filter: dict[str, str] = {}
+    if on_date is not None:
+        date_filter["equals"] = on_date
+    elif start_date is not None and end_date is not None and start_date == end_date:
+        date_filter["equals"] = start_date
+    else:
+        if start_date is not None:
+            date_filter["on_or_after"] = start_date
+        if end_date is not None:
+            date_filter["on_or_before"] = end_date
 
     results: list[dict] = []
     cursor = None
 
     while True:
         payload: dict[str, Any] = {"page_size": 100}
-        if date_property and on_date:
+        if date_filter:
             payload["filter"] = {
                 "property": date_property,
-                "date": {"equals": on_date},
+                "date": date_filter,
             }
         if cursor:
             payload["start_cursor"] = cursor
