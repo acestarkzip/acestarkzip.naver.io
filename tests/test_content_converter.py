@@ -160,3 +160,73 @@ def test_code_image_overwrites_old_generated_file(tmp_path):
     render_code_image("// 새 한글 주석", "cpp", destination)
 
     assert destination.read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
+
+
+def test_heading_4_is_preserved_as_h5_and_in_toc():
+    blocks = [{
+        "type": "heading_4",
+        "heading_4": {"rich_text": [rt("a. 더더 깊은 세부 내용")]},
+        "_children": [],
+    }]
+    headings = []
+    body = render_blocks(blocks, {}, [], headings=headings)
+    output = wrap_html("테스트", "", body, [], headings)
+
+    assert '<h5 id="a-더더-깊은-세부-내용">a. 더더 깊은 세부 내용</h5>' in output
+    assert 'href="#a-더더-깊은-세부-내용"' in output
+
+
+def test_bookmark_caption_is_preserved_instead_of_generic_type_name():
+    block = {
+        "type": "bookmark",
+        "bookmark": {
+            "url": "https://www.youtube.com/@sssrobotics/shorts",
+            "caption": [rt("S급 로봇 연구소 | SSS Robotics")],
+        },
+        "_children": [],
+    }
+    output = render_blocks([block], {}, [])
+
+    assert "S급 로봇 연구소 | SSS Robotics" in output
+    assert ">bookmark</a>" not in output
+
+
+def test_contact_heading_stays_in_body_but_is_excluded_from_toc():
+    blocks = [{
+        "type": "heading_1",
+        "heading_1": {"rich_text": [rt("📨 Contact us")]},
+        "_children": [],
+    }]
+    headings = []
+    body = render_blocks(blocks, {}, [], headings=headings)
+    output = wrap_html("테스트", "", body, [], headings)
+
+    assert "Contact us" in body
+    assert 'id="contact-us"' in body
+    assert 'href="#contact-us"' not in output
+
+
+def test_toggle_children_remain_nested_under_parent_title():
+    blocks = [{
+        "type": "toggle",
+        "toggle": {"rich_text": [rt("상위 토글")]},
+        "_children": [{
+            "type": "toggle",
+            "toggle": {"rich_text": [rt("하위 토글")]},
+            "_children": [{
+                "type": "paragraph",
+                "paragraph": {"rich_text": [rt("하위 내용")]},
+                "_children": [],
+            }],
+        }],
+    }]
+    output = render_blocks(blocks, {}, [])
+
+    assert output.index("상위 토글") < output.index("하위 토글") < output.index("하위 내용")
+    assert output.count('class="toggle-block"') == 2
+    assert output.count('class="toggle-content"') == 2
+
+
+def test_rich_text_newlines_become_html_line_breaks():
+    output = rich_text([rt("첫 번째 줄\n두 번째 줄")])
+    assert "첫 번째 줄<br>\n두 번째 줄" in output

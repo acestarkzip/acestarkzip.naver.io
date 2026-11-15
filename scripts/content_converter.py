@@ -6,6 +6,7 @@ import os
 import re
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 from PIL import Image, ImageDraw, ImageFont
 from pygments import lex
@@ -37,6 +38,9 @@ def _rich_text_item(item: dict) -> str:
     text_obj = item.get("text") or {}
     raw = item.get("plain_text") or text_obj.get("content") or ""
     value = html.escape(raw, quote=False)
+    value = value.replace("\r\n", "\n").replace("\r", "\n")
+    # Rich-text blocks can contain intentional line breaks (especially callouts).
+    value = value.replace("\n", "<br>\n")
     annotations = item.get("annotations") or {}
 
     if annotations.get("code"):
@@ -316,7 +320,7 @@ def render_blocks(
                 output.append(f"<p>{value}</p>")
                 lines.append(raw)
 
-        elif kind in ("heading_1", "heading_2", "heading_3"):
+        elif kind in ("heading_1", "heading_2", "heading_3", "heading_4"):
             if raw and not _is_toc_heading(raw):
                 # The page title is the only H1. Notion body H1/H2/H3 become H2/H3/H4.
                 level = int(kind[-1]) + 1
@@ -395,13 +399,22 @@ def render_blocks(
 
         elif kind in ("file", "pdf", "video", "audio", "bookmark", "embed", "link_preview"):
             url = _media_url(data) or data.get("url", "")
-            label = data.get("name") or data.get("title") or kind
+            caption_value = data.get("caption") or []
+            title_value = data.get("title") or ""
+            caption_text = plain(caption_value).strip() if isinstance(caption_value, list) else str(caption_value).strip()
+            title_text = plain(title_value).strip() if isinstance(title_value, list) else str(title_value).strip()
+            label = data.get("name") or caption_text or title_text
+            if not label and url:
+                label = urlparse(url).netloc or url
+            if not label:
+                label = "첨부 파일" if kind in ("file", "pdf") else "관련 링크"
             if url:
+                safe_url = html.escape(url, quote=True)
+                safe_label = html.escape(str(label))
                 output.append(
-                    f'<p class="attachment"><a href="{html.escape(url, quote=True)}">'
-                    f'{html.escape(str(label))}</a></p>'
+                    f'<p class="attachment"><a href="{safe_url}">{safe_label}</a></p>'
                 )
-                lines.append(f"[{kind}] {url}")
+                lines.append(f"[{label}]({url})")
 
         elif kind == "table":
             table_html = _render_table(block, lines)
@@ -415,16 +428,22 @@ def render_blocks(
                 lines.append(expression)
 
         elif kind == "toggle":
+            # Naver's editor does not reliably preserve HTML <details> toggles.
+            # Expand contents, but keep nested blocks visually grouped under the title.
+            if raw:
+                lines.append(raw)
             nested = render_blocks(
                 children, image_map, lines, depth + 1, code_image_dir,
                 headings, heading_counts,
             )
-            # Naver's editor does not reliably preserve HTML <details> toggles.
-            # Expand the content and retain the toggle label as a bold paragraph.
             if raw:
-                output.append(f'<p class="toggle-title"><strong>▸ {value}</strong></p>')
-                lines.append(raw)
-            if nested:
+                nested_html = f'<div class="toggle-content">{nested}</div>' if nested else ""
+                output.append(
+                    '<div class="toggle-block">'
+                    f'<p class="toggle-title"><strong>▸ {value}</strong></p>'
+                    f'{nested_html}</div>'
+                )
+            elif nested:
                 output.append(nested)
 
         elif kind in ("column_list", "column", "synced_block", "template"):
@@ -463,10 +482,16 @@ def render_blocks(
 
 
 def _render_toc(headings: list[dict[str, Any]]) -> str:
-    if not headings:
+    # Footer/contact information remains in the article but is not a content TOC entry.
+    visible_headings = [
+        heading for heading in headings
+        if re.sub(r"[^\w가-힣]+", "", str(heading.get("title", "")), flags=re.UNICODE).lower()
+        not in {"contactus", "연락처"}
+    ]
+    if not visible_headings:
         return ""
     items = []
-    for heading in headings:
+    for heading in visible_headings:
         level = int(heading.get("level", 2))
         title = html.escape(str(heading.get("title", "")))
         heading_id = html.escape(str(heading.get("id", "")), quote=True)
@@ -504,6 +529,7 @@ header h1 {{ font-size: 2em; line-height: 1.35; margin: 0 0 12px; }}
 main h2 {{ margin-top: 2em; font-size: 1.55em; }}
 main h3 {{ margin-top: 1.6em; font-size: 1.25em; }}
 main h4 {{ margin-top: 1.3em; font-size: 1.08em; }}
+main h5 {{ margin-top: 1.1em; font-size: 1em; }}
 p {{ margin: 0.8em 0; }}
 img {{ max-width: 100%; height: auto; }}
 figure {{ margin: 1.4em 0; }}
@@ -525,7 +551,9 @@ a {{ overflow-wrap: anywhere; }}
 .table-of-contents li {{ margin: 4px 0; }}
 .table-of-contents .toc-level-3 {{ margin-left: 18px; list-style-type: lower-alpha; }}
 .table-of-contents .toc-level-4 {{ margin-left: 36px; list-style-type: circle; }}
+.toggle-block {{ margin: 10px 0; }}
 .toggle-title {{ margin: 12px 0 4px; }}
+.toggle-content {{ margin-left: 22px; padding-left: 14px; border-left: 2px solid #d1d5db; }}
 .tags {{ color: #16803c; }}
 </style>
 </head>
