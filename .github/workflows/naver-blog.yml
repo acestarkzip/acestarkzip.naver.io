@@ -1,0 +1,57 @@
+
+name: Naver Blog Drafts
+
+on:
+  schedule:
+    # 매일 한국시간 07:17, 19:17
+    - cron: "17 22,10 * * *"
+  workflow_dispatch:
+    inputs:
+      update_existing:
+        description: "기존 미발행 초안 업데이트"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: naver-blog-drafts
+  cancel-in-progress: false
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Export Notion drafts
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+          UPDATE_EXISTING_DRAFTS: ${{ inputs.update_existing || 'false' }}
+        run: python scripts/exporter.py
+
+      - name: Commit generated drafts
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Naver_Drafts
+          if git diff --cached --quiet; then
+            echo "변경된 초안이 없습니다."
+          else
+            git commit -m "chore: update Naver blog drafts"
+            git push
+          fi
