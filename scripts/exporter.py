@@ -134,21 +134,23 @@ def main() -> None:
 
     processed = tracker.setdefault("pages", {})
     today_kst = datetime.now(KST).date()
-    start_date, end_date = date_window(today_kst)
-
-    print(f"[INFO] 한국시간 기준 검색 날짜: {start_date} ~ {end_date}")
     pages = query_database()
     candidates = []
 
-    # 본문/이미지는 날짜 범위에 해당하는 페이지만 가져옵니다.
+    # 날짜 제한 없이 전체 데이터베이스를 조회해 신규 페이지를 탐지합니다.
     for page in pages:
         page_date = date_of(page)
         if page_date is None:
-            continue
-        if start_date <= page_date <= end_date:
-            candidates.append((page_date, page))
+            created = page.get("created_time", "")
+            try:
+                page_date = datetime.fromisoformat(created.replace("Z", "+00:00")).astimezone(KST).date()
+            except Exception:
+                print(f"[SKIP] 날짜/생성일을 확인할 수 없는 페이지: {title_of(page)}")
+                continue
+        candidates.append((page_date, page))
 
     candidates.sort(key=lambda item: (item[0], title_of(item[1])))
+    print(f"[INFO] 전체 데이터베이스 검색: {len(candidates)}개 (날짜 제한 없음)")
     created = 0
     skipped = 0
 
@@ -193,9 +195,9 @@ def main() -> None:
             if block.get("type") == "image":
                 image_map[block["id"]] = f"images/{saved.name}"
 
-        text_lines = []
-        body_html = render_blocks(blocks, image_map, text_lines)
         folder.mkdir(parents=True, exist_ok=True)
+        text_lines = []
+        body_html = render_blocks(blocks, image_map, text_lines, code_image_dir=folder / "images")
 
         (folder / "01_네이버_원고.html").write_text(
             wrap_html(title, memo, body_html, tags), encoding="utf-8"
