@@ -57,3 +57,16 @@ GitHub Actions는 사용자의 로컬 PC에서 로그인된 네이버 브라우�
 | `NOTION_PROPERTY_TAGS` | `태그` | 태그 속성 |
 | `UPDATE_EXISTING_DRAFTS` | `false` | 이미 처리한 미발행 초안 업데이트 허용 |
 | `MAX_DOWNLOAD_MB` | `50` | 파일당 다운로드 제한 |
+
+
+
+<!--
+==================================
+"processed_pages.json" 초기화 명령어
+==================================
+{
+  "version": 1,
+  "pages": {}
+}
+
+ >

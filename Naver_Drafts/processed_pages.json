@@ -1,32 +1,4 @@
 {
   "version": 1,
-  "pages": {
-    "417d9e12-9df7-80e6-a078-c949a7f94268": {
-      "folder": "2026-11-13_LLM_RAG_4일차_(D+25)",
-      "last_edited_time": "2026-11-13T05:43:00.000Z",
-      "status": "draft",
-      "title": "LLM RAG 4일차 (D+25)",
-      "date": "2026-11-13"
-    },
-    "419d9e12-9df7-80ec-9aa6-d54d02bf0d05": {
-      "folder": "2026-11-14_Self-Taught_블로그_개선_(메모_참고)",
-      "last_edited_time": "2026-11-15T01:59:00.000Z",
-      "status": "draft",
-      "title": "Self-Taught : 블로그 개선 (메모 참고)",
-      "date": "2026-11-14"
-    },
-    "419d9e12-9df7-8051-9227-c101b454ae81": {
-      "folder": "2026-11-15_[네이버_블로그_연동_템플릿]",
-      "last_edited_time": "2026-11-15T03:11:00.000Z",
-      "status": "draft",
-      "title": "[네이버 블로그 연동 템플릿]",
-      "date": "2026-11-15"
-    }
-  },
-  "last_scan": "2026-11-15T05:06:02.795658+00:00",
-  "scan_window": {
-    "start": "2026-11-13",
-    "end": "2026-11-16",
-    "timezone": "Asia/Seoul"
-  }
+  "pages": {}
 }
