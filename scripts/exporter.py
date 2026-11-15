@@ -200,10 +200,18 @@ def main() -> None:
 
         folder.mkdir(parents=True, exist_ok=True)
         text_lines = []
-        body_html = render_blocks(blocks, image_map, text_lines, code_image_dir=folder / "images")
+        headings = []
+        body_html = render_blocks(
+            blocks, image_map, text_lines,
+            code_image_dir=folder / "images",
+            headings=headings,
+        )
+        # Include generated code screenshots as well as downloaded Notion media.
+        code_images = sorted((folder / "images").glob("code_*.png"))
+        image_names.extend(path.name for path in code_images if path.name not in image_names)
 
         (folder / "01_네이버_원고.html").write_text(
-            wrap_html(title, memo, body_html, tags), encoding="utf-8"
+            wrap_html(title, memo, body_html, tags, headings), encoding="utf-8"
         )
         text_content = "\n".join([
             title,
