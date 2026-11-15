@@ -1,97 +1,267 @@
 from __future__ import annotations
-import os,re,json,mimetypes,html
+
+import os
+import re
+import json
+import mimetypes
 from pathlib import Path
-from datetime import datetime,timezone
-from urllib.parse import urlparse,unquote
+from datetime import datetime, date, timedelta, timezone
+from zoneinfo import ZoneInfo
+from urllib.parse import urlparse, unquote
+
 import requests
-from notion_reader import query_database,get_blocks,load_tree
-from content_converter import plain,render_blocks,wrap_html
 
-ROOT=Path(__file__).resolve().parents[1]; DRAFTS=ROOT/"Naver_Drafts"; TRACKER=DRAFTS/"processed_pages.json"
-TITLE=os.getenv("NOTION_PROPERTY_TITLE","제목"); DATE=os.getenv("NOTION_PROPERTY_DATE","날짜")
-MEMO=os.getenv("NOTION_PROPERTY_MEMO","간단메모"); TAGS=os.getenv("NOTION_PROPERTY_TAGS","태그")
-LIMIT=int(os.getenv("MAX_DOWNLOAD_MB","50"))*1024*1024
-UPDATE=os.getenv("UPDATE_EXISTING_DRAFTS","false").lower()=="true"
+from notion_reader import query_database, get_blocks, load_tree
+from content_converter import plain, render_blocks, wrap_html
 
-def title_of(p):
-    props=p.get("properties",{}); v=plain((props.get(TITLE) or {}).get("title") or [])
-    if not v:
-        for x in props.values():
-            if x.get("type")=="title": v=plain(x.get("title") or []); break
-    return v.strip() or "제목없음"
-def date_of(p):
-    v=(p.get("properties",{}).get(DATE,{}).get("date") or {}).get("start")
-    return str(v)[:10] if v else datetime.now().strftime("%Y-%m-%d")
-def memo_of(p):
-    x=p.get("properties",{}).get(MEMO,{})
-    return plain(x.get("rich_text") or x.get("title") or []).strip()
-def tags_of(p):
-    x=p.get("properties",{}).get(TAGS,{})
-    return [t["name"].strip() for t in x.get("multi_select",[]) if t.get("name","").strip()]
-def slug(s):
-    s=re.sub(r'[\\\\/*?:"<>|]',"",s); return re.sub(r"\\s+","_",s).strip("._")[:90] or "untitled"
-def media_blocks(blocks):
-    out=[]
-    for b in blocks:
-        if b.get("type") in ("image","file","pdf"): out.append(b)
-        out.extend(media_blocks(b.get("_children") or []))
-    return out
-def save_media(b,folder,index):
-    d=b.get(b.get("type"),{}) or {}; m=d.get("file") or d.get("external") or {}; url=m.get("url")
-    if not url or not url.startswith("https://"): return None
-    folder.mkdir(parents=True,exist_ok=True)
-    name=d.get("name") or f"media_{index}"
-    ext=Path(unquote(urlparse(url).path)).suffix.lower()
-    if ext not in (".png",".jpg",".jpeg",".gif",".webp",".bmp",".pdf"):
-        ext=mimetypes.guess_extension(m.get("mime_type","")) or ".bin"
-    dest=folder/f"{index:02d}_{slug(Path(name).stem)}{ext}"
+ROOT = Path(__file__).resolve().parents[1]
+DRAFTS = ROOT / "Naver_Drafts"
+TRACKER = DRAFTS / "processed_pages.json"
+
+TITLE_PROP = os.getenv("NOTION_PROPERTY_TITLE", "제목")
+DATE_PROP = os.getenv("NOTION_PROPERTY_DATE", "날짜")
+MEMO_PROP = os.getenv("NOTION_PROPERTY_MEMO", "간단메모")
+TAGS_PROP = os.getenv("NOTION_PROPERTY_TAGS", "태그")
+MAX_DOWNLOAD_BYTES = int(os.getenv("MAX_DOWNLOAD_MB", "50")) * 1024 * 1024
+UPDATE_EXISTING = os.getenv("UPDATE_EXISTING_DRAFTS", "false").lower() == "true"
+KST = ZoneInfo("Asia/Seoul")
+
+
+def title_of(page: dict) -> str:
+    props = page.get("properties", {})
+    title = plain((props.get(TITLE_PROP) or {}).get("title") or [])
+    if not title:
+        for prop in props.values():
+            if prop.get("type") == "title":
+                title = plain(prop.get("title") or [])
+                break
+    return title.strip() or "제목없음"
+
+
+def date_of(page: dict) -> date | None:
+    value = (page.get("properties", {}).get(DATE_PROP, {}).get("date") or {}).get("start")
+    if not value:
+        return None
     try:
-        with requests.get(url,stream=True,timeout=30) as r:
-            r.raise_for_status()
-            if int(r.headers.get("Content-Length","0") or 0)>LIMIT: return None
-            total=0
-            with dest.open("wb") as f:
-                for chunk in r.iter_content(65536):
-                    if not chunk: continue
-                    total+=len(chunk)
-                    if total>LIMIT: raise ValueError("파일 크기 제한 초과")
-                    f.write(chunk)
-        if not dest.stat().st_size: dest.unlink(missing_ok=True); return None
-        return dest
-    except Exception as e:
-        dest.unlink(missing_ok=True); print(f"[WARN] 미디어 다운로드 실패: {e}"); return None
+        return date.fromisoformat(str(value)[:10])
+    except ValueError:
+        print(f"[SKIP] 날짜 형식 확인 필요: {value}")
+        return None
 
-def main():
-    DRAFTS.mkdir(parents=True,exist_ok=True)
-    state=json.loads(TRACKER.read_text(encoding="utf-8")) if TRACKER.exists() else {"version":1,"pages":{}}
-    known=state.setdefault("pages",{}); count=0
-    pages=sorted(query_database(),key=lambda p:(date_of(p),title_of(p)))
+
+def memo_of(page: dict) -> str:
+    prop = page.get("properties", {}).get(MEMO_PROP, {})
+    return plain(prop.get("rich_text") or prop.get("title") or []).strip()
+
+
+def tags_of(page: dict) -> list[str]:
+    prop = page.get("properties", {}).get(TAGS_PROP, {})
+    return [
+        item["name"].strip()
+        for item in prop.get("multi_select", [])
+        if item.get("name", "").strip()
+    ]
+
+
+def safe_name(value: str) -> str:
+    value = re.sub(r'[\\/*?:"<>|]', "", value)
+    value = re.sub(r"\s+", "_", value).strip("._")
+    return value[:90] or "untitled"
+
+
+def media_blocks(blocks: list[dict]) -> list[dict]:
+    found = []
+    for block in blocks:
+        if block.get("type") in ("image", "file", "pdf"):
+            found.append(block)
+        found.extend(media_blocks(block.get("_children") or []))
+    return found
+
+
+def save_media(block: dict, folder: Path, index: int) -> Path | None:
+    data = block.get(block.get("type"), {}) or {}
+    media = data.get("file") or data.get("external") or {}
+    url = media.get("url")
+    if not url or not url.startswith("https://"):
+        return None
+
+    folder.mkdir(parents=True, exist_ok=True)
+    original_name = data.get("name") or f"media_{index}"
+    extension = Path(unquote(urlparse(url).path)).suffix.lower()
+    if extension not in (".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".pdf"):
+        extension = mimetypes.guess_extension(media.get("mime_type", "")) or ".bin"
+
+    destination = folder / f"{index:02d}_{safe_name(Path(original_name).stem)}{extension}"
+    try:
+        with requests.get(url, stream=True, timeout=30) as response:
+            response.raise_for_status()
+            content_length = int(response.headers.get("Content-Length", "0") or 0)
+            if content_length > MAX_DOWNLOAD_BYTES:
+                print(f"[SKIP] 파일 크기 제한 초과: {original_name}")
+                return None
+
+            total = 0
+            with destination.open("wb") as output:
+                for chunk in response.iter_content(65536):
+                    if not chunk:
+                        continue
+                    total += len(chunk)
+                    if total > MAX_DOWNLOAD_BYTES:
+                        raise ValueError("파일 크기 제한 초과")
+                    output.write(chunk)
+
+        if destination.stat().st_size == 0:
+            destination.unlink(missing_ok=True)
+            return None
+        return destination
+    except Exception as error:
+        destination.unlink(missing_ok=True)
+        print(f"[WARN] 미디어 다운로드 실패 ({original_name}): {error}")
+        return None
+
+
+def date_window(today: date) -> tuple[date, date]:
+    # B 방식: 오늘 기준 최근 3일(오늘 포함, 과거 2일) + 내일까지
+    return today - timedelta(days=2), today + timedelta(days=1)
+
+
+def main() -> None:
+    DRAFTS.mkdir(parents=True, exist_ok=True)
+    if TRACKER.exists():
+        tracker = json.loads(TRACKER.read_text(encoding="utf-8"))
+    else:
+        tracker = {"version": 1, "pages": {}}
+
+    processed = tracker.setdefault("pages", {})
+    today_kst = datetime.now(KST).date()
+    start_date, end_date = date_window(today_kst)
+
+    print(f"[INFO] 한국시간 기준 검색 날짜: {start_date} ~ {end_date}")
+    pages = query_database()
+    candidates = []
+
+    # 본문/이미지는 날짜 범위에 해당하는 페이지만 가져옵니다.
     for page in pages:
-        pid=page["id"]; edited=page.get("last_edited_time",""); prev=known.get(pid)
-        if prev and (not UPDATE or prev.get("last_edited_time")==edited): continue
-        if prev and prev.get("status")=="published": print("[SKIP] 발행 완료 글 보호:",title_of(page)); continue
-        title,date,memo,tags=title_of(page),date_of(page),memo_of(page),tags_of(page)
-        folder_name=slug(date+"_"+title); folder=DRAFTS/folder_name
-        if folder.exists() and (not prev or prev.get("folder")!=folder_name):
-            folder_name += "_"+pid.replace("-","")[:6]; folder=DRAFTS/folder_name
-        blocks=load_tree(get_blocks(pid)); imgs={}; image_rows=[]
-        for i,b in enumerate(media_blocks(blocks),1):
-            saved=save_media(b,folder/"images",i)
-            if saved and b.get("type")=="image":
-                imgs[b["id"]]="images/"+saved.name; image_rows.append(saved.name)
-            elif saved: image_rows.append(saved.name)
-        lines=[]; body=render_blocks(blocks,imgs,lines)
-        folder.mkdir(parents=True,exist_ok=True)
-        (folder/"01_네이버_원고.html").write_text(wrap_html(title,memo,body,tags),encoding="utf-8")
-        text_body="\\n".join([title,"="*min(len(title),60),memo,"",*lines,""," ".join("#"+t for t in tags)])
-        (folder/"02_네이버_원고.txt").write_text(text_body,encoding="utf-8")
-        (folder/"03_이미지_목록.txt").write_text("\\n".join(image_rows) or "다운로드된 이미지가 없습니다.",encoding="utf-8")
-        checklist=["네이버 블로그 발행 전 체크리스트","[ ] 제목/본문 오탈자 확인","[ ] 이미지 위치와 표시 확인","[ ] 이미지 출처 및 사용 권한 확인","[ ] 링크 확인","[ ] 태그 입력","[ ] 공개 범위 확인","[ ] 미리보기 후 직접 발행"]
-        (folder/"04_발행_체크리스트.txt").write_text("\\n".join(checklist),encoding="utf-8")
-        meta={"notion_page_id":pid,"title":title,"date":date,"memo":memo,"tags":tags,"last_edited_time":edited,"notion_url":page.get("url"),"exported_at":datetime.now(timezone.utc).isoformat(),"status":"draft"}
-        (folder/"metadata.json").write_text(json.dumps(meta,ensure_ascii=False,indent=2),encoding="utf-8")
-        known[pid]={"folder":folder_name,"last_edited_time":edited,"status":"draft","title":title}; count+=1
-        print("[DRAFT]",folder_name)
-    TRACKER.write_text(json.dumps(state,ensure_ascii=False,indent=2),encoding="utf-8")
-    print(f"완료: {count}개 초안 생성/갱신")
-if __name__=="__main__": main()
+        page_date = date_of(page)
+        if page_date is None:
+            continue
+        if start_date <= page_date <= end_date:
+            candidates.append((page_date, page))
+
+    candidates.sort(key=lambda item: (item[0], title_of(item[1])))
+    created = 0
+    skipped = 0
+
+    for page_date, page in candidates:
+        page_id = page["id"]
+        last_edited = page.get("last_edited_time", "")
+        previous = processed.get(page_id)
+
+        if previous and previous.get("status") == "published":
+            print(f"[SKIP] 발행 완료 페이지 보호: {title_of(page)}")
+            skipped += 1
+            continue
+
+        if previous and (
+            not UPDATE_EXISTING
+            or previous.get("last_edited_time") == last_edited
+        ):
+            print(f"[SKIP] 이미 처리한 페이지: {title_of(page)}")
+            skipped += 1
+            continue
+
+        title = title_of(page)
+        memo = memo_of(page)
+        tags = tags_of(page)
+        folder_name = safe_name(f"{page_date.isoformat()}_{title}")
+        folder = DRAFTS / folder_name
+
+        if folder.exists() and (not previous or previous.get("folder") != folder_name):
+            folder_name = f"{folder_name}_{page_id.replace('-', '')[:6]}"
+            folder = DRAFTS / folder_name
+
+        blocks = load_tree(get_blocks(page_id))
+        image_map = {}
+        image_names = []
+
+        for index, block in enumerate(media_blocks(blocks), start=1):
+            saved = save_media(block, folder / "images", index)
+            if not saved:
+                continue
+            image_names.append(saved.name)
+            if block.get("type") == "image":
+                image_map[block["id"]] = f"images/{saved.name}"
+
+        text_lines = []
+        body_html = render_blocks(blocks, image_map, text_lines)
+        folder.mkdir(parents=True, exist_ok=True)
+
+        (folder / "01_네이버_원고.html").write_text(
+            wrap_html(title, memo, body_html, tags), encoding="utf-8"
+        )
+        text_content = "\n".join([
+            title,
+            "=" * min(len(title), 60),
+            memo,
+            "",
+            *text_lines,
+            "",
+            " ".join("#" + tag for tag in tags),
+        ])
+        (folder / "02_네이버_원고.txt").write_text(text_content, encoding="utf-8")
+        (folder / "03_이미지_목록.txt").write_text(
+            "\n".join(image_names) if image_names else "다운로드된 이미지가 없습니다.",
+            encoding="utf-8",
+        )
+
+        checklist = [
+            "네이버 블로그 발행 전 체크리스트",
+            "[ ] 제목과 본문 오탈자 확인",
+            "[ ] 이미지 위치와 표시 확인",
+            "[ ] 이미지 출처 및 사용 권한 확인",
+            "[ ] 링크 확인",
+            "[ ] 태그 입력",
+            "[ ] 공개 범위 확인",
+            "[ ] 미리보기 후 직접 발행",
+        ]
+        (folder / "04_발행_체크리스트.txt").write_text(
+            "\n".join(checklist), encoding="utf-8"
+        )
+
+        metadata = {
+            "notion_page_id": page_id,
+            "title": title,
+            "date": page_date.isoformat(),
+            "memo": memo,
+            "tags": tags,
+            "last_edited_time": last_edited,
+            "notion_url": page.get("url"),
+            "exported_at": datetime.now(timezone.utc).isoformat(),
+            "status": "draft",
+        }
+        (folder / "metadata.json").write_text(
+            json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+
+        processed[page_id] = {
+            "folder": folder_name,
+            "last_edited_time": last_edited,
+            "status": "draft",
+            "title": title,
+            "date": page_date.isoformat(),
+        }
+        created += 1
+        print(f"[DRAFT] {folder_name}")
+
+    tracker["last_scan"] = datetime.now(timezone.utc).isoformat()
+    tracker["scan_window"] = {
+        "start": start_date.isoformat(),
+        "end": end_date.isoformat(),
+        "timezone": "Asia/Seoul",
+    }
+    TRACKER.write_text(json.dumps(tracker, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"[DONE] 신규/갱신 초안 {created}개, 건너뜀 {skipped}개")
+
+
+if __name__ == "__main__":
+    main()

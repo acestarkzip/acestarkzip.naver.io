@@ -1,14 +1,13 @@
-
 name: Naver Blog Drafts
 
 on:
   schedule:
-    # 매일 한국시간 07:17, 19:17
+    # 매일 한국시간 07:17, 19:17 (GitHub Actions cron은 UTC)
     - cron: "17 22,10 * * *"
   workflow_dispatch:
     inputs:
       update_existing:
-        description: "기존 미발행 초안 업데이트"
+        description: "이미 생성된 미발행 초안도 Notion 수정 내용으로 갱신"
         required: false
         type: boolean
         default: false
@@ -37,14 +36,15 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Export Notion drafts
+      - name: Scan recent Notion posts and create Naver drafts
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
           UPDATE_EXISTING_DRAFTS: ${{ inputs.update_existing || 'false' }}
+          MAX_DOWNLOAD_MB: "50"
         run: python scripts/exporter.py
 
-      - name: Commit generated drafts
+      - name: Commit generated drafts and processing history
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
