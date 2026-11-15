@@ -91,7 +91,6 @@ def _render_list(
     code_image_dir: Path | None = None,
     headings: list[dict[str, Any]] | None = None,
     heading_counts: dict[str, int] | None = None,
-    contact_card: dict[str, Any] | None = None,
 ) -> tuple[str, int]:
     tag = "ul" if kind == "bulleted_list_item" else "ol"
     items: list[str] = []
@@ -104,7 +103,7 @@ def _render_list(
             lines.append(("• " if tag == "ul" else f"{len(items) + 1}. ") + raw)
         nested = render_blocks(
             block.get("_children") or [], image_map, lines, depth + 1,
-            code_image_dir, headings, heading_counts, contact_card,
+            code_image_dir, headings, heading_counts,
         )
         if item_html or nested:
             items.append(f"<li>{item_html}{nested}</li>")
@@ -303,67 +302,6 @@ def render_code_image(code: str, language: str, destination: Path) -> Path:
 
 
 
-def create_contact_card(destination: Path, links: list[dict[str, str]]) -> Path:
-    """Create a branded image card for contact URLs while keeping URLs as text too."""
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    width, height = 1400, 560
-    image = Image.new("RGB", (width, height), "#111418")
-    draw = ImageDraw.Draw(image)
-
-    title_font = _code_font(40, bold=True)
-    subtitle_font = _code_font(20)
-    label_font = _code_font(18, bold=True)
-    value_font = _code_font(20)
-    small_font = _code_font(16)
-
-    draw.rounded_rectangle((8, 8, width - 8, height - 8), radius=28,
-                           fill="#171c21", outline="#303a42", width=3)
-    draw.rounded_rectangle((8, 8, width - 8, 22), radius=8, fill="#76b900")
-    draw.text((64, 58), "SSS ROBOTICS", font=title_font, fill="#ffffff")
-    draw.text((66, 118), "ROBOTICS  ·  SIMULATION  ·  PHYSICAL AI", font=subtitle_font, fill="#b8c3cc")
-    draw.line((64, 172, width - 64, 172), fill="#39434b", width=2)
-
-    # Keep the card compact and readable, even when one of the optional links is absent.
-    normalized = links[:3]
-    if not normalized:
-        normalized = [{"label": "WEBSITE", "url": "https://www.sssrobotics.com"}]
-
-    gap = 22
-    card_width = (width - 128 - gap * 2) // 3
-    card_top, card_bottom = 212, 450
-    for index, item in enumerate(normalized):
-        left = 64 + index * (card_width + gap)
-        right = left + card_width
-        draw.rounded_rectangle((left, card_top, right, card_bottom), radius=18,
-                               fill="#20272d", outline="#3a454d", width=2)
-        draw.rounded_rectangle((left + 24, card_top + 26, left + 34, card_top + 68), radius=5,
-                               fill="#76b900")
-        label = str(item.get("label", "LINK")).upper()
-        draw.text((left + 54, card_top + 26), label, font=label_font, fill="#a6e65c")
-        value = str(item.get("url", ""))
-        # Wrap long URLs based on measured width.
-        max_width = card_width - 48
-        chunks: list[str] = []
-        current = ""
-        for char in value:
-            candidate = current + char
-            if current and draw.textlength(candidate, font=value_font) > max_width:
-                chunks.append(current)
-                current = char
-            else:
-                current = candidate
-        if current:
-            chunks.append(current)
-        y = card_top + 100
-        for chunk in chunks[:4]:
-            draw.text((left + 26, y), chunk, font=value_font, fill="#f1f5f7")
-            y += 34
-
-    draw.text((66, 490), "S급 로봇 연구소  |  www.sssrobotics.com", font=small_font, fill="#89969f")
-    image.save(destination, "PNG", optimize=True)
-    return destination
-
-
 def _image_number(path: str) -> int | None:
     """Extract an ordered image number from current or legacy asset names."""
     value = path or ""
@@ -373,11 +311,6 @@ def _image_number(path: str) -> int | None:
     # Older drafts used names such as images/image_01.png.
     match = re.search(r"(?:^|/)image_(\d+)\.", value, flags=re.IGNORECASE)
     return int(match.group(1)) if match else None
-
-
-def _is_contact_heading(text: str) -> bool:
-    compact = re.sub(r"[^\w가-힣]+", "", text, flags=re.UNICODE).lower()
-    return compact in {"contactus", "연락처", "문의", "contact"}
 
 
 def _slugify_heading(text: str, counts: dict[str, int]) -> str:
@@ -397,7 +330,6 @@ def render_blocks(
     lines: list[str], depth: int = 0, code_image_dir: Path | None = None,
     headings: list[dict[str, Any]] | None = None,
     heading_counts: dict[str, int] | None = None,
-    contact_card: dict[str, Any] | None = None,
 ) -> str:
     """Convert Notion blocks into a simple, copy-friendly Naver Blog article."""
     if depth > 20:
@@ -421,7 +353,7 @@ def render_blocks(
         if kind in ("bulleted_list_item", "numbered_list_item"):
             rendered, index = _render_list(
                 blocks, index, kind, image_map, lines, depth,
-                code_image_dir, headings, heading_counts, contact_card,
+                code_image_dir, headings, heading_counts,
             )
             if rendered:
                 output.append(rendered)
@@ -448,13 +380,6 @@ def render_blocks(
                     5: "font-size:19pt;font-weight:700;color:#000;margin:.9em 0 .3em;",
                 }[level]
                 output.append(f'<h{level} style="{heading_style}">{value}</h{level}>')
-                if contact_card and _is_contact_heading(raw):
-                    card_src = html.escape(str(contact_card.get("path", "")), quote=True)
-                    if card_src:
-                        output.append(
-                            f'<p><img src="{card_src}" alt="SSS Robotics 연락처 링크 카드" '
-                            'style="display:block;max-width:100%;height:auto;margin:14px 0;"></p>'
-                        )
                 lines.extend(["", raw.strip(), ""])
 
         elif kind == "to_do":
@@ -478,7 +403,7 @@ def render_blocks(
                 icon_text = icon.get("emoji") or "💡"
                 nested = render_blocks(
                     children, image_map, lines, depth + 1, code_image_dir,
-                    headings, heading_counts, contact_card,
+                    headings, heading_counts,
                 )
                 content = f"<p><strong>{html.escape(icon_text)} {value}</strong></p>" if value else ""
                 output.append(
@@ -574,7 +499,7 @@ def render_blocks(
             # Toggle UI is flattened to a bold label and visible body for simple pasting.
             nested = render_blocks(
                 children, image_map, lines, depth + 1, code_image_dir,
-                headings, heading_counts, contact_card,
+                headings, heading_counts,
             )
             if raw.strip():
                 output.append(f"<p><strong>▸ {value}</strong></p>")
@@ -589,7 +514,7 @@ def render_blocks(
         elif kind in ("column_list", "column", "synced_block", "template"):
             nested = render_blocks(
                 children, image_map, lines, depth + 1, code_image_dir,
-                headings, heading_counts, contact_card,
+                headings, heading_counts,
             )
             if nested:
                 output.append(nested)
@@ -612,7 +537,7 @@ def render_blocks(
         if children and kind not in handled_children:
             nested = render_blocks(
                 children, image_map, lines, depth + 1, code_image_dir,
-                headings, heading_counts, contact_card,
+                headings, heading_counts,
             )
             if nested:
                 output.append(nested)
@@ -651,7 +576,6 @@ def render_plain_text(
     image_map: dict[str, str] | None = None,
     headings: list[dict[str, Any]] | None = None,
     code_sources: list[dict[str, str]] | None = None,
-    contact_card: dict[str, Any] | None = None,
 ) -> str:
     """Render Notion blocks as plain text intended for Naver SmartEditor.
 
@@ -729,10 +653,6 @@ def render_plain_text(
                     else:
                         original_level = int(kind[-1])
                         result.append("  " * max(0, original_level - 1) + raw)
-                        if contact_card and _is_contact_heading(raw):
-                            card_path = str(contact_card.get("path", ""))
-                            card_number = int(contact_card.get("number", _image_number(card_path) or 0))
-                            result.append(indent + f"🟨 이미지 {card_number:02d} 삽입 위치: SSS Robotics 연락처 링크 카드")
                         result.append("")
 
             elif kind == "to_do":

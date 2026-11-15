@@ -15,7 +15,7 @@ def test_date_window_is_today_only_at_month_and_year_boundaries():
 
 
 
-def test_visual_asset_events_keep_document_order_and_insert_contact_card():
+def test_visual_asset_events_keep_only_original_images_and_code_in_document_order():
     from exporter import ordered_visual_events
     blocks = [
         {"id": "img1", "type": "image", "image": {}},
@@ -23,25 +23,8 @@ def test_visual_asset_events_keep_document_order_and_insert_contact_card():
         {"id": "contact", "type": "heading_1", "heading_1": {"rich_text": [{"plain_text": "📨 Contact us"}]}},
         {"id": "img2", "type": "image", "image": {}},
     ]
-    events = [(kind, block.get("id")) for kind, block in ordered_visual_events(blocks, include_contact_card=True)]
-    assert events == [("image", "img1"), ("code", "code1"), ("contact", "contact"), ("image", "img2")]
-
-
-def test_collect_contact_links_extracts_youtube_website_and_email():
-    from exporter import collect_contact_links
-    def item(text, url=None):
-        return {"plain_text": text, "text": {"content": text, "link": {"url": url} if url else None}}
-    blocks = [
-        {"type": "heading_1", "heading_1": {"rich_text": [item("📨 Contact us")]}},
-        {"type": "bookmark", "bookmark": {"url": "https://www.youtube.com/@sssrobotics/shorts", "caption": [item("SSS Robotics")] }},
-        {"type": "paragraph", "paragraph": {"rich_text": [item("Youtube", "https://www.youtube.com/@sssrobotics"), item(" Blog", "https://www.sssrobotics.com"), item(" Email", "mailto:acestark.zip@gmail.com")] }},
-    ]
-    links = collect_contact_links(blocks)
-    assert links == [
-        {"label": "YouTube", "url": "https://www.youtube.com/@sssrobotics"},
-        {"label": "Website", "url": "https://www.sssrobotics.com"},
-        {"label": "Email", "url": "acestark.zip@gmail.com"},
-    ]
+    events = [(kind, block.get("id")) for kind, block in ordered_visual_events(blocks)]
+    assert events == [("image", "img1"), ("code", "code1"), ("image", "img2")]
 
 
 def test_create_image_bundle_contains_all_assets_in_number_order(tmp_path):
@@ -114,3 +97,14 @@ def test_save_media_uses_order_number_and_original_name_extension(tmp_path, monk
     assert saved is not None
     assert saved.name == "이미지_07_robot-diagram.png"
     assert saved.read_bytes() == b"PNG!"
+
+
+def test_post_body_does_not_append_database_property_tags():
+    from exporter import build_post_body_text
+
+    body = "본문 내용\n\n#S급로봇연구소 #OpenUSD"
+    result = build_post_body_text(body)
+
+    assert result == body + "\n"
+    assert "#자기개발" not in result
+    assert "#S급로봇연구소" in result  # hashtags explicitly written in Notion remain intact

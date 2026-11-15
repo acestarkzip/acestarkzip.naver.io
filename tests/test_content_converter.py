@@ -373,13 +373,28 @@ def test_all_visual_placeholders_share_one_top_to_bottom_number_sequence():
         blocks,
         image_map=image_map,
         code_sources=[],
-        contact_card={"number": 4, "path": "images/이미지_04_contact.png"},
     )
     expected = [
         "이미지 01 삽입 위치",
         "이미지 02 삽입 위치",
         "이미지 03 삽입 위치",
-        "이미지 04 삽입 위치",
     ]
     positions = [output.index(marker) for marker in expected]
     assert positions == sorted(positions)
+    assert "연락처 링크 카드" not in output
+    assert "이미지 04 삽입 위치" not in output
+
+
+def test_contact_section_has_no_generated_card_image_or_placeholder():
+    blocks = [{
+        "type": "heading_1",
+        "heading_1": {"rich_text": [rt("📨 Contact us")]},
+        "_children": [],
+    }]
+    headings = []
+    html_output = render_blocks(blocks, {}, [], headings=headings)
+    text_output = render_plain_text(blocks, {}, headings, [])
+    assert "Contact us" in html_output
+    assert "Contact us" in text_output
+    assert "SSS Robotics 연락처 링크 카드" not in html_output
+    assert "연락처 링크 카드" not in text_output

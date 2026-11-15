@@ -15,7 +15,7 @@ import requests
 from notion_reader import query_database, get_blocks, load_tree
 from content_converter import (
     plain, render_blocks, render_plain_text, wrap_html, render_code_image,
-    code_image_filename, create_contact_card, _is_contact_heading,
+    code_image_filename,
 )
 from docx_exporter import write_naver_docx
 
@@ -93,101 +93,19 @@ def _is_raster_media_block(block: dict) -> bool:
     )
 
 
-def ordered_visual_events(blocks: list[dict], include_contact_card: bool = False):
-    """Yield photos, code screenshots, and the contact card in document order."""
-    contact_emitted = False
-
+def ordered_visual_events(blocks: list[dict]):
+    """Yield original image and code blocks in document order."""
     def walk(items: list[dict]):
-        nonlocal contact_emitted
         for block in items or []:
             kind = block.get("type", "")
-            data = block.get(kind) or {}
             if _is_raster_media_block(block):
                 yield "image", block
             elif kind == "code":
                 yield "code", block
-            elif include_contact_card and not contact_emitted and kind in {
-                "heading_1", "heading_2", "heading_3", "heading_4"
-            }:
-                heading_text = plain(data.get("rich_text") or data.get("title") or []).strip()
-                if heading_text and _is_contact_heading(heading_text):
-                    contact_emitted = True
-                    yield "contact", block
             yield from walk(block.get("_children") or [])
 
     yield from walk(blocks)
 
-def collect_contact_links(blocks: list[dict]) -> list[dict[str, str]]:
-    """Read public contact URLs only from the content below the Contact heading."""
-    found: list[str] = []
-    contact_active = False
-    url_re = re.compile(r"https?://[^\s<>\]\[()]+", re.I)
-    email_re = re.compile(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}", re.I)
-
-    def visit(items: list[dict]):
-        nonlocal contact_active
-        for block in items or []:
-            kind = block.get("type", "")
-            data = block.get(kind) or {}
-            if kind in {"heading_1", "heading_2", "heading_3", "heading_4"}:
-                heading = plain(data.get("rich_text") or data.get("title") or []).strip()
-                if heading and _is_contact_heading(heading):
-                    contact_active = True
-            if contact_active:
-                media_url = data.get("url")
-                if isinstance(media_url, str) and media_url.startswith("http"):
-                    found.append(media_url.rstrip(".,;:!?)"))
-                for rich_items in (data.get("rich_text"), data.get("title")):
-                    if not isinstance(rich_items, list):
-                        continue
-                    for item in rich_items:
-                        item = item or {}
-                        text_obj = item.get("text") or {}
-                        href = item.get("href") or (text_obj.get("link") or {}).get("url")
-                        if href:
-                            if href.lower().startswith("mailto:"):
-                                found.append(href)
-                            elif href.startswith("http"):
-                                found.append(href.rstrip(".,;:!?)"))
-                        raw = item.get("plain_text") or text_obj.get("content") or ""
-                        found.extend(match.rstrip(".,;:!?)") for match in url_re.findall(raw))
-                        found.extend(email_re.findall(raw))
-                if kind in {"bookmark", "embed", "link_preview"}:
-                    url = data.get("url")
-                    if isinstance(url, str) and url.startswith("http"):
-                        found.append(url.rstrip(".,;:!?)"))
-            visit(block.get("_children") or [])
-
-    visit(blocks)
-
-    unique: list[str] = []
-    for url in found:
-        url = url.strip()
-        if url and url not in unique:
-            unique.append(url)
-
-    youtube = next((u for u in unique if "youtube.com" in u or "youtu.be" in u), "")
-    if youtube.endswith("/shorts"):
-        channel = next((u for u in unique if ("youtube.com" in u or "youtu.be" in u) and not u.endswith("/shorts")), "")
-        if channel:
-            youtube = channel
-
-    website = next((u for u in unique if "sssrobotics.com" in u and "youtube.com" not in u), "")
-    email = next((u for u in unique if u.lower().startswith("mailto:") or "@" in u and not u.startswith("http")), "")
-
-    result: list[dict[str, str]] = []
-    if youtube:
-        result.append({"label": "YouTube", "url": youtube})
-    if website:
-        result.append({"label": "Website", "url": website})
-    if email:
-        result.append({"label": "Email", "url": email.removeprefix("mailto:")})
-    for url in unique:
-        if len(result) >= 3:
-            break
-        if all(url not in item["url"] for item in result):
-            result.append({"label": "Link", "url": url})
-    return result
 
 def save_media(block: dict, folder: Path, index: int) -> Path | None:
     data = block.get(block.get("type"), {}) or {}
@@ -266,6 +184,12 @@ def create_image_bundle(
             )
         archive.writestr("이미지_업로드_순서.txt", "\n".join(readme_lines) + "\n")
     return archive_path
+
+
+def build_post_body_text(body_text: str) -> str:
+    """Normalize the article body without appending database-property tags."""
+    body = (body_text or "").strip()
+    return body + "\n" if body else ""
 
 def date_window(today: date) -> tuple[date, date]:
     # 테스트 모드: 한국시간 기준 오늘 날짜의 글만 처리
@@ -346,14 +270,12 @@ def main() -> None:
             ):
                 old_file.unlink()
 
-        contact_links = collect_contact_links(blocks)
         image_map: dict[str, str] = {}
         image_manifest: list[dict[str, str | int]] = []
         code_sources: list[dict[str, str]] = []
-        contact_card: dict[str, str | int] | None = None
         asset_number = 0
 
-        for event_type, block in ordered_visual_events(blocks, include_contact_card=bool(contact_links)):
+        for event_type, block in ordered_visual_events(blocks):
             data = block.get(block.get("type"), {}) or {}
             if event_type == "image":
                 candidate_number = asset_number + 1
@@ -394,22 +316,6 @@ def main() -> None:
                     "kind": "code",
                 })
 
-            elif event_type == "contact":
-                asset_number += 1
-                filename = f"이미지_{asset_number:02d}_SSS_Robotics_연락처_링크.png"
-                destination = images_folder / filename
-                create_contact_card(destination, contact_links)
-                contact_card = {
-                    "number": asset_number,
-                    "path": f"images/{filename}",
-                }
-                image_manifest.append({
-                    "number": asset_number,
-                    "path": f"images/{filename}",
-                    "label": "SSS Robotics 연락처 링크 카드",
-                    "kind": "contact",
-                })
-
         folder.mkdir(parents=True, exist_ok=True)
         image_bundle = create_image_bundle(folder, image_manifest)
         text_lines = []
@@ -418,19 +324,15 @@ def main() -> None:
             blocks, image_map, text_lines,
             code_image_dir=images_folder,
             headings=headings,
-            contact_card=contact_card,
         )
 
         # TXT is the plain-text fallback. DOCX carries exact heading sizes and yellow image markers.
         body_text = render_plain_text(
-            blocks, image_map, headings, code_sources, contact_card=contact_card
+            blocks, image_map, headings, code_sources
         )
         (folder / "01_네이버_제목.txt").write_text(title.strip() + "\n", encoding="utf-8")
 
-        body_parts = [body_text.strip()]
-        if tags:
-            body_parts.extend(["", " ".join("#" + tag for tag in tags)])
-        final_body_text = "\n".join(part for part in body_parts if part is not None).strip() + "\n"
+        final_body_text = build_post_body_text(body_text)
         (folder / "02_네이버_본문.txt").write_text(final_body_text, encoding="utf-8")
         write_naver_docx(
             final_body_text,
@@ -483,7 +385,6 @@ def main() -> None:
             "[ ] 02_네이버_본문_서식.docx를 Word에서 열어 본문을 복사해 네이버 편집기에 붙여넣기",
             "[ ] 노란색 이미지 삽입 안내 문구를 지우고 해당 이미지 첨부",
             "[ ] 07_이미지_전체.zip을 내려받아 압축을 풀고, 이미지 01부터 마지막 번호까지 첨부",
-            "[ ] 연락처 링크 카드 이미지와 텍스트 URL 확인",
             "[ ] 코드 이미지가 모두 삽입되었는지 확인",
             "[ ] 링크가 정상적으로 표시되는지 확인",
             "[ ] 해시태그 확인 및 필요 시 네이버 태그 입력란에도 등록",
@@ -510,7 +411,7 @@ def main() -> None:
             "7. 압축을 푼 이미지 파일을 네이버 사진 첨부 창에서 여러 장 선택할 수 있습니다.",
             "8. 본문 배치 순서는 파일명 앞 번호와 03_이미지_목록.txt를 기준으로 맞춥니다.",
             "9. TXT만 필요하면 02_네이버_본문.txt를 사용하세요. TXT에는 글자 크기와 노란색 배경이 저장되지 않습니다.",
-            "10. URL은 연락처 카드 이미지에도 보이지만, 클릭할 수 있도록 텍스트 URL도 본문에 남겨 둡니다.",
+            "10. YouTube·홈페이지·이메일 주소가 본문에 있는지 확인합니다.",
             "11. 최종 확인 후 직접 발행합니다.",
             "",
             "주의: 로컬 이미지 파일은 본문 복사만으로 업로드되지 않습니다. 07_이미지_전체.zip에서 추출한 파일을 네이버 사진 첨부 기능으로 등록해야 합니다.",
@@ -521,7 +422,7 @@ def main() -> None:
         )
 
         (folder / "06_미리보기.html").write_text(
-            wrap_html(title, body_html, tags, headings), encoding="utf-8"
+            wrap_html(title, body_html, [], headings), encoding="utf-8"
         )
 
         # Remove files generated by earlier versions to avoid selecting the
