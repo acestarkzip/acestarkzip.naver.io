@@ -154,11 +154,26 @@ def _media_url(data: dict) -> str:
     return media.get("url") or data.get("url") or ""
 
 
+# Dark editor palette inspired by familiar IDE syntax highlighting.
+# Keep the dark charcoal canvas and use distinct, readable token colors.
 _CODE_COLORS = {
-    Token.Keyword: "#c792ea", Token.Name.Function: "#82aaff",
-    Token.Name.Class: "#ffcb6b", Token.String: "#c3e88d",
-    Token.Number: "#f78c6c", Token.Comment: "#91a0bd",
-    Token.Operator: "#89ddff", Token.Punctuation: "#c5cbd6",
+    # More specific token types must come before their parent token types.
+    Token.Comment.PreprocFile: "#D7BA7D",
+    Token.Comment.Preproc: "#569CD6",
+    Token.Keyword: "#569CD6",
+    Token.Name.Class: "#DCDCAA",
+    Token.Name.Function: "#DCDCAA",
+    Token.Name.Builtin: "#4EC9B0",
+    Token.Name.Builtin.Pseudo: "#9CDCFE",
+    Token.Name.Namespace: "#D4D4D4",
+    Token.Name: "#D4D4D4",
+    Token.Literal.String: "#D7E39B",
+    Token.String: "#D7E39B",
+    Token.Literal.Number: "#B5CEA8",
+    Token.Number: "#B5CEA8",
+    Token.Comment: "#C5A37A",
+    Token.Operator: "#D4D4D4",
+    Token.Punctuation: "#D4D4D4",
 }
 
 
@@ -200,8 +215,10 @@ def _code_font(size: int = 16, *, bold: bool = False) -> ImageFont.FreeTypeFont 
 
 
 def _token_color(token_type: Any) -> str:
-    """Use a consistent black code color for clean Naver Blog insertion."""
-    return "#111111"
+    for token, color in _CODE_COLORS.items():
+        if token_type in token:
+            return color
+    return "#e6e6e6"
 
 
 def code_image_filename(code: str, language: str) -> str:
@@ -263,26 +280,20 @@ def render_code_image(code: str, language: str, destination: Path) -> Path:
         wrapped_rows = wrapped_rows[:max_rows - 1]
         wrapped_rows.append([("… 코드가 길어 이미지에서 일부 생략되었습니다. TXT 원고를 확인하세요.", Token.Text)])
 
-    height = max(120, pad * 2 + len(wrapped_rows) * line_height + 24)
-    # A white canvas with black text blends into Naver Blog's normal article
-    # surface and avoids the dark code-panel look in pasted posts.
-    image = Image.new("RGB", (width, height), "#ffffff")
+    height = max(145, header + pad * 2 + len(wrapped_rows) * line_height)
+    image = Image.new("RGB", (width, height), "#1e1e1e")
     draw = ImageDraw.Draw(image)
-    draw.rounded_rectangle(
-        (5, 5, width - 5, height - 5),
-        radius=8,
-        fill="#ffffff",
-        outline="#e5e7eb",
-        width=2,
-    )
-    draw.text((pad, 14), (language or "text").upper(), font=label_font, fill="#111111")
-    draw.line((pad, 42, width - pad, 42), fill="#eeeeee", width=1)
+    draw.rounded_rectangle((5, 5, width - 5, height - 5), radius=14, fill="#1e1e1e", outline="#343434", width=2)
+    draw.rounded_rectangle((5, 5, width - 5, header + 5), radius=14, fill="#252526")
+    draw.rectangle((5, header - 8, width - 5, header + 5), fill="#252526")
+    draw.text((pad, 17), (language or "text").upper(), font=label_font, fill="#d4d4d4")
 
-    y = 58
+    y = header + pad
     for row in wrapped_rows:
         x = pad
         for char, token_type in row:
-            draw.text((x, y), char, font=font, fill="#111111")
+            color = "#f0b36a" if truncated and char == "…" else _token_color(token_type)
+            draw.text((x, y), char, font=font, fill=color)
             x += draw.textlength(char, font=font)
         y += line_height
 
