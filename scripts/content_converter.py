@@ -159,9 +159,9 @@ def render_code_image(code: str, language: str, destination: Path) -> Path:
     for token_type, token_text in tokens:
         parts = token_text.splitlines(keepends=True)
         for part in parts:
-            value = part.rstrip("\\r\\n")
+            value = part.rstrip("\r\n")
             if value: token_rows[-1].append((value, token_type))
-            if part.endswith(("\\n", "\\r")): token_rows.append([])
+            if part.endswith(("\n", "\r")): token_rows.append([])
     if token_rows and not token_rows[-1]: token_rows.pop()
     y = header + pad
     if len(token_rows) == len(lines):
