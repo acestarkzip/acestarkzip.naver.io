@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-from content_converter import plain, rich_text, render_blocks, wrap_html
+from content_converter import plain, rich_text, render_blocks, render_plain_text, wrap_html
 
 
 def rt(text, link=None, **annotations):
@@ -74,8 +74,9 @@ def test_wrap_html():
     output = wrap_html("테스트", "<p>본문</p>", ["로봇"])
     assert "<title>테스트</title>" in output
     assert "#로봇" in output and "<p>본문</p>" in output
-    assert 'id="copyTitleButton"' in output
-    assert 'id="copyBodyButton"' in output
+    assert "제목 복사" not in output
+    assert "본문 복사" not in output
+    assert "미리보기 전용" in output
 
 
 def test_body_headings_are_demoted_and_toc_is_generated():
@@ -176,7 +177,7 @@ def test_heading_4_is_simplified_to_h4_and_in_plain_toc():
     body = render_blocks(blocks, {}, [], headings=headings)
     output = wrap_html("테스트", body, [], headings)
 
-    assert '<h4 style=' in output and 'a. 더더 깊은 세부 내용</h4>' in output
+    assert '<h5 style=' in output and 'a. 더더 깊은 세부 내용</h5>' in output
     assert 'a. 더더 깊은 세부 내용' in output
 
 
@@ -237,15 +238,13 @@ def test_rich_text_newlines_become_html_line_breaks():
     assert "첫 번째 줄<br>\n두 번째 줄" in output
 
 
-def test_html_has_separate_title_and_body_copy_targets():
+def test_html_is_preview_only_and_has_no_clipboard_copy_controls():
     output = wrap_html("제목", "<p>본문입니다.</p>", ["로봇"])
-    assert 'id="naverTitle">제목</h1>' in output
-    assert 'id="naverBody"' in output
-    body_section = output.split('<article id="naverBody">', 1)[1].split('</article>', 1)[0]
-    assert "제목" not in body_section
-    assert "본문입니다." in body_section
-    assert "#로봇" in body_section
-    assert "메모" not in body_section
+    assert "제목" in output and "본문입니다." in output and "#로봇" in output
+    assert "미리보기 전용" in output
+    assert "copyTitleButton" not in output
+    assert "copyBodyButton" not in output
+    assert "document.execCommand" not in output
 
 
 def test_copy_friendly_output_uses_common_html_only():
@@ -259,3 +258,56 @@ def test_copy_friendly_output_uses_common_html_only():
     assert "<aside" not in output
     assert 'class="callout"' not in output
     assert "도입 내용" in output
+
+
+
+def test_plain_text_has_no_html_or_markdown_and_keeps_links_visible():
+    blocks = [
+        {"type": "paragraph", "paragraph": {"rich_text": [rt("SSS Robotics", {"url": "https://www.sssrobotics.com"})]}},
+        {"type": "heading_2", "heading_2": {"rich_text": [rt("오늘의 기술 내용")]}},
+        {"type": "bulleted_list_item", "bulleted_list_item": {"rich_text": [rt("첫 번째 항목")]}, "_children": []},
+    ]
+    output = render_plain_text(blocks)
+    assert "SSS Robotics (https://www.sssrobotics.com)" in output
+    assert "오늘의 기술 내용" in output
+    assert "• 첫 번째 항목" in output
+    assert "<p>" not in output and "<strong>" not in output and "```" not in output
+    email = render_plain_text([{"type": "paragraph", "paragraph": {"rich_text": [rt("Email : user@example.com", {"url": "mailto:user@example.com"})]}}])
+    assert "mailto:" not in email
+
+
+def test_plain_text_puts_image_and_code_upload_markers_in_content_order():
+    image_block = {"id": "img-1", "type": "image", "image": {"caption": [rt("대표 이미지")]}}
+    code = "print('한글 테스트')"
+    code_block = {"type": "code", "code": {"rich_text": [rt(code)], "language": "python"}}
+    blocks = [image_block, code_block]
+    code_sources = []
+    output = render_plain_text(blocks, {"img-1": "images/01_media_1.png"}, [], code_sources)
+    assert "[이미지 삽입 위치: images/01_media_1.png]" in output
+    assert "[코드 이미지 삽입 위치: images/code_python_" in output
+    assert output.index("01_media_1.png") < output.index("code_python_")
+    assert code_sources[0]["code"] == code
+
+
+def test_plain_text_generates_simple_toc_and_preserves_nested_list_and_toggle():
+    blocks = [
+        {"type": "heading_1", "heading_1": {"rich_text": [rt("📚 목차")]}},
+        {"type": "heading_1", "heading_1": {"rich_text": [rt("오늘의 진행 내용")]}},
+        {"type": "heading_2", "heading_2": {"rich_text": [rt("세부 주제")]}},
+        {"type": "heading_1", "heading_1": {"rich_text": [rt("Contact us")]}},
+        {"type": "toggle", "toggle": {"rich_text": [rt("참고 자료")]}, "_children": [
+            {"type": "paragraph", "paragraph": {"rich_text": [rt("내부 설명")]}},
+        ]},
+    ]
+    headings = [
+        {"level": 2, "title": "오늘의 진행 내용"},
+        {"level": 3, "title": "세부 주제"},
+        {"level": 2, "title": "Contact us"},
+    ]
+    output = render_plain_text(blocks, headings=headings)
+    assert "📚 목차" in output
+    assert "• 오늘의 진행 내용" in output
+    assert "  • 세부 주제" in output
+    toc = output.split("📚 목차", 1)[1].split("오늘의 진행 내용", 1)[0]
+    assert "Contact us" not in toc
+    assert "▸ 참고 자료" in output and "내부 설명" in output

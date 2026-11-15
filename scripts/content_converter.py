@@ -78,7 +78,10 @@ def rich_text(items: list[dict] | None) -> str:
 
 
 def _text_fields(data: dict) -> tuple[str, str]:
-    rich = data.get("rich_text") or data.get("title") or []
+    rich = data.get("rich_text")
+    if not isinstance(rich, list):
+        candidate = data.get("title")
+        rich = candidate if isinstance(candidate, list) else []
     return rich_text(rich), plain(rich).strip()
 
 
@@ -201,6 +204,13 @@ def _token_color(token_type: Any) -> str:
         if token_type in token:
             return color
     return "#e6e6e6"
+
+
+def code_image_filename(code: str, language: str) -> str:
+    """Return the stable filename used for a rendered code screenshot."""
+    safe_lang = re.sub(r"[^a-zA-Z0-9_-]+", "_", (language or "text").lower())[:20] or "code"
+    digest = hashlib.sha1(((language or "text") + "\0" + code).encode("utf-8")).hexdigest()[:10]
+    return f"code_{safe_lang}_{digest}.png"
 
 
 def render_code_image(code: str, language: str, destination: Path) -> Path:
@@ -335,13 +345,14 @@ def render_blocks(
                 output.append("<!-- NAVER_AUTO_TOC -->")
             elif raw.strip():
                 # One page title (H1); all body headings use H2-H4 for a compact hierarchy.
-                level = min(int(kind[-1]) + 1, 4)
+                level = min(int(kind[-1]) + 1, 5)
                 heading_id = _slugify_heading(raw, heading_counts)
                 headings.append({"level": level, "title": raw.strip(), "id": heading_id})
                 heading_style = {
                     2: "font-size:1.45em;font-weight:700;margin:1.6em 0 .55em;",
                     3: "font-size:1.2em;font-weight:700;margin:1.25em 0 .45em;",
                     4: "font-size:1.05em;font-weight:700;margin:1em 0 .35em;",
+                    5: "font-size:.98em;font-weight:700;margin:.9em 0 .3em;",
                 }[level]
                 output.append(f'<h{level} style="{heading_style}">{value}</h{level}>')
                 lines.extend(["", raw.strip(), ""])
@@ -383,9 +394,7 @@ def render_blocks(
             if code.strip():
                 language_raw = str(data.get("language") or "text")
                 if code_image_dir is not None:
-                    safe_lang = re.sub(r"[^a-zA-Z0-9_-]+", "_", language_raw.lower())[:20] or "code"
-                    digest = hashlib.sha1((language_raw + "\0" + code).encode("utf-8")).hexdigest()[:10]
-                    image_path = code_image_dir / f"code_{safe_lang}_{digest}.png"
+                    image_path = code_image_dir / code_image_filename(code, language_raw)
                     render_code_image(code, language_raw, image_path)
                     src = "images/" + image_path.name
                     output.append(
@@ -511,6 +520,226 @@ def render_blocks(
     return rendered
 
 
+def _plain_rich_text(items: list[dict] | str | None) -> str:
+    """Create editor-friendly text; keep meaningful URLs visible and copyable."""
+    if isinstance(items, str):
+        return items.replace("\r\n", "\n").replace("\r", "\n")
+    parts: list[str] = []
+    for item in items or []:
+        item = item or {}
+        text_obj = item.get("text") or {}
+        value = item.get("plain_text") or text_obj.get("content") or ""
+        href = _safe_link(item)
+        if href and href not in value:
+            normalized = href.removeprefix("mailto:")
+            if normalized not in value:
+                value = f"{value} ({href})" if value else href
+        parts.append(value)
+    return "".join(parts).replace("\r\n", "\n").replace("\r", "\n")
+
+
+def render_plain_text(
+    blocks: list[dict],
+    image_map: dict[str, str] | None = None,
+    headings: list[dict[str, Any]] | None = None,
+    code_sources: list[dict[str, str]] | None = None,
+) -> str:
+    """Render Notion blocks as plain text intended for Naver SmartEditor.
+
+    No HTML, Markdown fences, CSS, or browser clipboard formatting is emitted.
+    Media placeholders show where the user should upload each local image.
+    """
+    image_map = image_map or {}
+    headings = headings or []
+    if code_sources is None:
+        code_sources = []
+
+    def visible_toc() -> list[str]:
+        rows: list[str] = []
+        for heading in headings:
+            title = str(heading.get("title", "")).strip()
+            compact = re.sub(r"[^\w가-힣]+", "", title, flags=re.UNICODE).lower()
+            if not title or compact in {"목차", "contents", "tableofcontents", "contactus", "연락처"}:
+                continue
+            level = max(2, min(int(heading.get("level", 2)), 5))
+            rows.append("  " * (level - 2) + "• " + title)
+        return rows
+
+    toc_rows = visible_toc()
+    toc_written = False
+
+    def render(items: list[dict], depth: int = 0) -> list[str]:
+        nonlocal toc_written
+        result: list[str] = []
+        index = 0
+        indent = "  " * depth
+
+        while index < len(items):
+            block = items[index] or {}
+            kind = block.get("type", "")
+            data = block.get(kind) or {}
+            children = block.get("_children") or []
+            rich = data.get("rich_text") or data.get("title") or []
+            raw = _plain_rich_text(rich).strip()
+
+            if kind in ("bulleted_list_item", "numbered_list_item"):
+                run_kind = kind
+                count = 0
+                while index < len(items) and items[index].get("type") == run_kind:
+                    item = items[index] or {}
+                    item_data = item.get(run_kind) or {}
+                    item_text = _plain_rich_text(item_data.get("rich_text") or item_data.get("title") or []).strip()
+                    item_children = item.get("_children") or []
+                    if item_text:
+                        count += 1
+                        prefix = "• " if run_kind == "bulleted_list_item" else f"{count}. "
+                        result.append(indent + prefix + item_text)
+                    result.extend(render(item_children, depth + 1))
+                    index += 1
+                result.append("")
+                continue
+
+            if kind == "paragraph":
+                if raw:
+                    result.extend(indent + line for line in raw.split("\n"))
+                    result.append("")
+
+            elif kind in ("heading_1", "heading_2", "heading_3", "heading_4"):
+                if raw:
+                    compact = re.sub(r"[^\w가-힣]+", "", raw, flags=re.UNICODE).lower()
+                    if compact in {"목차", "contents", "tableofcontents"}:
+                        result.append(indent + (raw if "목차" in raw else "📚 목차"))
+                        if toc_rows and not toc_written:
+                            result.extend(indent + row for row in toc_rows)
+                            toc_written = True
+                        result.append("")
+                    else:
+                        original_level = int(kind[-1])
+                        result.append("  " * max(0, original_level - 1) + raw)
+                        result.append("")
+
+            elif kind == "to_do":
+                if raw:
+                    mark = "☑" if data.get("checked") else "☐"
+                    result.append(indent + f"{mark} {raw}")
+
+            elif kind == "quote":
+                if raw:
+                    result.append(indent + f"“{raw}”")
+                    result.append("")
+
+            elif kind == "callout":
+                icon = (data.get("icon") or {}).get("emoji") or "💡"
+                if raw:
+                    result.extend(indent + line for line in (f"{icon} {raw}").split("\n"))
+                result.extend(render(children, depth + 1))
+                if raw or children:
+                    result.append("")
+
+            elif kind == "code":
+                code = _plain_rich_text(data.get("rich_text") or [])
+                if code.strip():
+                    language = str(data.get("language") or "text")
+                    filename = code_image_filename(code, language)
+                    result.append(indent + f"[코드 이미지 삽입 위치: images/{filename}]")
+                    result.append(indent + "(코드 원문이 필요하면 05_코드_원문.txt를 참고하세요.)")
+                    code_sources.append({"language": language, "code": code, "filename": filename})
+                    result.append("")
+
+            elif kind == "divider":
+                result.extend([indent + "────────────────────────", ""])
+
+            elif kind == "image":
+                caption = _plain_rich_text(data.get("caption") or []).strip()
+                local_path = image_map.get(block.get("id"), "")
+                if local_path:
+                    result.append(indent + f"[이미지 삽입 위치: {local_path}]")
+                else:
+                    result.append(indent + "[이미지 파일 확인 필요: 이미지 목록 참조]")
+                if caption:
+                    result.append(indent + caption)
+                result.append("")
+
+            elif kind in ("file", "pdf", "video", "audio", "bookmark", "embed", "link_preview"):
+                url = _media_url(data) or data.get("url", "")
+                caption_value = data.get("caption") or []
+                title_value = data.get("title") or ""
+                description_value = data.get("description") or ""
+                caption = _plain_rich_text(caption_value).strip() if isinstance(caption_value, list) else str(caption_value).strip()
+                title = _plain_rich_text(title_value).strip() if isinstance(title_value, list) else str(title_value).strip()
+                description = _plain_rich_text(description_value).strip() if isinstance(description_value, list) else str(description_value).strip()
+                label = data.get("name") or caption or title or (urlparse(url).netloc if url else "관련 링크")
+                local_path = image_map.get(block.get("id"), "")
+                if local_path:
+                    result.append(indent + f"[첨부 파일 확인: {local_path}]")
+                elif url:
+                    result.append(indent + f"🔗 {label}")
+                    result.append(indent + url)
+                elif label:
+                    result.append(indent + str(label))
+                if description and description != str(label):
+                    result.append(indent + description)
+                if url or local_path or description:
+                    result.append("")
+
+            elif kind == "table":
+                for row in children:
+                    cells = (row.get("table_row") or {}).get("cells") or []
+                    cell_texts = [_plain_rich_text(cell).strip() for cell in cells]
+                    if any(cell_texts):
+                        result.append(indent + " | ".join(cell_texts))
+                if children:
+                    result.append("")
+
+            elif kind == "equation":
+                expression = str(data.get("expression") or "").strip()
+                if expression:
+                    result.extend([indent + expression, ""])
+
+            elif kind == "toggle":
+                if raw:
+                    result.append(indent + f"▸ {raw}")
+                result.extend(render(children, depth + 1))
+                if raw or children:
+                    result.append("")
+
+            elif kind in ("column_list", "column", "synced_block", "template"):
+                result.extend(render(children, depth))
+
+            elif kind in ("child_page", "child_database"):
+                label = str(data.get("title") or "하위 페이지").strip()
+                if label:
+                    result.extend([indent + label, ""])
+
+            elif raw:
+                result.extend(indent + line for line in raw.split("\n"))
+                result.append("")
+
+            if children and kind not in {
+                "callout", "toggle", "column_list", "column", "synced_block", "template",
+                "table", "bulleted_list_item", "numbered_list_item",
+            }:
+                result.extend(render(children, depth + 1))
+            index += 1
+
+        return result
+
+    output = render(blocks)
+    cleaned: list[str] = []
+    previous_blank = False
+    for line in output:
+        line = line.rstrip()
+        if not line:
+            if cleaned and not previous_blank:
+                cleaned.append("")
+            previous_blank = True
+        else:
+            cleaned.append(line)
+            previous_blank = False
+    while cleaned and not cleaned[-1]:
+        cleaned.pop()
+    return "\n".join(cleaned)
+
 def _render_toc(headings: list[dict[str, Any]]) -> str:
     # Create a simple text/list TOC; no internal anchors are required for Naver.
     visible_headings = [
@@ -523,7 +752,7 @@ def _render_toc(headings: list[dict[str, Any]]) -> str:
 
     items = []
     for heading in visible_headings:
-        level = max(2, min(int(heading.get("level", 2)), 4))
+        level = max(2, min(int(heading.get("level", 2)), 5))
         indent = (level - 2) * 16
         title = html.escape(str(heading.get("title", "")))
         items.append(
@@ -540,11 +769,10 @@ def wrap_html(
     title: str, body: str, tags: list[str],
     headings: list[dict[str, Any]] | None = None,
 ) -> str:
-    # Create a simple preview with separate title/body copy controls.
+    """Create a visual-only preview. Naver publishing uses the generated TXT."""
     safe_title = html.escape(title)
     tag_html = " ".join("#" + html.escape(tag) for tag in tags)
-    # Database date/memo fields stay in metadata.json and are not inserted into the public post.
-    tags_html = f'<p style="margin-top:20px;color:#16803c;">{tag_html}</p>' if tag_html else ""
+    tags_html = f'<p class="tags">{tag_html}</p>' if tag_html else ""
 
     return f'''<!doctype html>
 <html lang="ko">
@@ -553,61 +781,31 @@ def wrap_html(
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{safe_title}</title>
 <style>
-body {{ font-family: Arial, 'Malgun Gothic', 'Noto Sans CJK KR', sans-serif; line-height: 1.75; max-width: 820px; margin: 28px auto; padding: 0 18px; color: #222; }}
-.copy-tools {{ position: sticky; top: 0; z-index: 10; padding: 10px; margin: 0 -18px 20px; background: #f3f6f3; border-bottom: 1px solid #dfe6df; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }}
-.copy-tools button {{ border: 0; border-radius: 6px; background: #16803c; color: white; padding: 10px 16px; font-weight: 700; cursor: pointer; }}
-.copy-tools small {{ color: #555; }}
-.preview-title {{ font-size: 30px; line-height: 1.35; margin: 8px 0 18px; }}
-article h2 {{ font-size: 24px; margin: 30px 0 12px; }}
-article h3 {{ font-size: 20px; margin: 24px 0 9px; }}
-article h4 {{ font-size: 17px; margin: 18px 0 8px; }}
-article p {{ margin: 10px 0; }}
-article img {{ max-width: 100%; height: auto; }}
-article ul, article ol {{ padding-left: 26px; margin: 10px 0; }}
-article li {{ margin: 5px 0; }}
-article a {{ color: #145da0; text-decoration: underline; }}
-article pre {{ white-space: pre-wrap; overflow-wrap: anywhere; background: #f5f5f5; padding: 12px; }}
-article blockquote {{ margin: 12px 0; }}
-@media print {{ .copy-tools {{ display:none; }} body {{ max-width:none; margin:0; }} }}
+body {{ font-family: Arial, 'Malgun Gothic', 'Noto Sans CJK KR', sans-serif; line-height: 1.8; max-width: 820px; margin: 32px auto; padding: 0 20px; color: #222; }}
+.preview-note {{ padding: 10px 14px; margin-bottom: 20px; background: #f4f7fb; border-left: 4px solid #64748b; color: #475569; font-size: 14px; }}
+header h1 {{ font-size: 2em; line-height: 1.35; margin: 0 0 18px; }}
+article h2 {{ font-size: 1.55em; margin: 1.8em 0 .6em; }}
+article h3 {{ font-size: 1.25em; margin: 1.5em 0 .5em; }}
+article h4 {{ font-size: 1.08em; margin: 1.3em 0 .4em; }}
+article h5 {{ font-size: 1em; margin: 1.1em 0 .35em; }}
+article p {{ margin: .8em 0; }}
+article img {{ display:block; max-width:100%; height:auto; margin:14px auto; }}
+article ul, article ol {{ padding-left:26px; margin:10px 0; }}
+article li {{ margin:5px 0; }}
+article a {{ color:#145da0; text-decoration:underline; overflow-wrap:anywhere; }}
+article pre {{ white-space:pre-wrap; overflow-wrap:anywhere; background:#f5f5f5; padding:12px; }}
+article blockquote {{ margin:12px 0; padding:8px 14px; border-left:3px solid #999; color:#444; }}
+.tags {{ margin-top:24px; color:#16803c; }}
+@media print {{ .preview-note {{ display:none; }} body {{ max-width:none; margin:0; }} }}
 </style>
 </head>
 <body>
-<div class="copy-tools" aria-label="원고 복사 도구">
-  <button type="button" id="copyTitleButton">제목 복사</button>
-  <button type="button" id="copyBodyButton">본문 복사</button>
-  <small id="copyStatus">제목과 본문을 각각 복사해 네이버 블로그 제목란과 본문에 붙여넣으세요.</small>
-</div>
-<h1 class="preview-title" id="naverTitle">{safe_title}</h1>
-<article id="naverBody">
-<main>
+<div class="preview-note">이 파일은 미리보기 전용입니다. 네이버 블로그에는 같은 폴더의 01_네이버_제목.txt와 02_네이버_본문.txt를 사용하세요.</div>
+<header><h1>{safe_title}</h1></header>
+<article>
 {body}
-</main>
 {tags_html}
 </article>
-<script>
-(function () {{
-  const status = document.getElementById('copyStatus');
-  function copySelection(element, message) {{
-    const selection = window.getSelection();
-    const range = document.createRange();
-    range.selectNodeContents(element);
-    selection.removeAllRanges();
-    selection.addRange(range);
-    let copied = false;
-    try {{ copied = document.execCommand('copy'); }} catch (error) {{ copied = false; }}
-    selection.removeAllRanges();
-    status.textContent = copied
-      ? message
-      : '자동 복사에 실패했습니다. 해당 영역을 선택해 Ctrl+C 하세요.';
-  }}
-  document.getElementById('copyTitleButton').addEventListener('click', function () {{
-    copySelection(document.getElementById('naverTitle'), '제목을 복사했습니다. 네이버 블로그 제목란에 붙여넣으세요.');
-  }});
-  document.getElementById('copyBodyButton').addEventListener('click', function () {{
-    copySelection(document.getElementById('naverBody'), '본문을 복사했습니다. 네이버 블로그 본문에 붙여넣으세요.');
-  }});
-}})();
-</script>
 </body>
 </html>
 '''

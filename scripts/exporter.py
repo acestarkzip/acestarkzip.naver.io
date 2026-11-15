@@ -12,7 +12,7 @@ from urllib.parse import urlparse, unquote
 import requests
 
 from notion_reader import query_database, get_blocks, load_tree
-from content_converter import plain, render_blocks, wrap_html
+from content_converter import plain, render_blocks, render_plain_text, wrap_html
 
 ROOT = Path(__file__).resolve().parents[1]
 DRAFTS = ROOT / "Naver_Drafts"
@@ -187,6 +187,10 @@ def main() -> None:
             folder = DRAFTS / folder_name
 
         blocks = load_tree(get_blocks(page_id))
+        images_folder = folder / "images"
+        if images_folder.exists():
+            for stale_code_image in images_folder.glob("code_*.png"):
+                stale_code_image.unlink()
         image_map = {}
         image_names = []
 
@@ -195,7 +199,7 @@ def main() -> None:
             if not saved:
                 continue
             image_names.append(saved.name)
-            if block.get("type") == "image":
+            if block.get("id"):
                 image_map[block["id"]] = f"images/{saved.name}"
 
         folder.mkdir(parents=True, exist_ok=True)
@@ -210,53 +214,114 @@ def main() -> None:
         code_images = sorted((folder / "images").glob("code_*.png"))
         image_names.extend(path.name for path in code_images if path.name not in image_names)
 
-        (folder / "01_네이버_원고.html").write_text(
-            wrap_html(title, body_html, tags, headings), encoding="utf-8"
-        )
-        text_content = "\n".join([
-            title,
-            "=" * min(len(title), 60),
-            "",
-            *text_lines,
-            "",
-            " ".join("#" + tag for tag in tags),
-        ])
-        (folder / "02_네이버_원고.txt").write_text(text_content, encoding="utf-8")
-        (folder / "03_이미지_목록.txt").write_text(
-            "\n".join(image_names) if image_names else "다운로드된 이미지가 없습니다.",
+        # TXT files are the primary publishing artifacts for Naver SmartEditor.
+        # HTML is kept only as an optional visual preview, never as the copy source.
+        body_text = render_plain_text(blocks, image_map, headings)
+        (folder / "01_네이버_제목.txt").write_text(title.strip() + "\n", encoding="utf-8")
+
+        body_parts = [body_text.strip()]
+        if tags:
+            body_parts.extend(["", " ".join("#" + tag for tag in tags)])
+        (folder / "02_네이버_본문.txt").write_text(
+            "\n".join(part for part in body_parts if part is not None).strip() + "\n",
             encoding="utf-8",
         )
 
+        image_list_lines = [
+            "네이버 블로그 이미지 업로드 목록",
+            "",
+            "본문의 [이미지 삽입 위치: ...] 표시를 찾아 해당 파일을 업로드하세요.",
+            "이미지는 본문에 표시된 순서대로 삽입하면 됩니다.",
+            "",
+        ]
+        # Match the checklist order to the image markers as they appear in the body.
+        ordered_image_names = sorted(
+            image_names,
+            key=lambda name: body_text.find(f"images/{name}")
+            if body_text.find(f"images/{name}") >= 0 else len(body_text) + image_names.index(name),
+        )
+        image_list_lines.extend(
+            f"{index:02d}. images/{name}"
+            for index, name in enumerate(ordered_image_names, start=1)
+        )
+        if not image_names:
+            image_list_lines.append("다운로드된 이미지가 없습니다.")
+        (folder / "03_이미지_목록.txt").write_text(
+            "\n".join(image_list_lines) + "\n", encoding="utf-8"
+        )
+
+        # Keep original code in a separate optional file. The main article
+        # points to its PNG at the exact insertion location.
+        code_sources: list[dict[str, str]] = []
+        render_plain_text(blocks, image_map, headings, code_sources)
+        code_backup_path = folder / "05_코드_원문.txt"
+        if code_backup_path.exists() and not code_sources:
+            code_backup_path.unlink()
+        if code_sources:
+            code_lines = ["코드 원문 백업 (필요한 경우에만 사용)", ""]
+            for index, item in enumerate(code_sources, start=1):
+                code_lines.extend([
+                    f"[{index}] {item['language'].upper()} 코드",
+                    f"이미지 파일: images/{item['filename']}",
+                    "",
+                    item["code"].rstrip(),
+                    "",
+                    "────────────────────────",
+                    "",
+                ])
+            (folder / "05_코드_원문.txt").write_text(
+                "\n".join(code_lines).rstrip() + "\n", encoding="utf-8"
+            )
+
         checklist = [
             "네이버 블로그 발행 전 체크리스트",
-            "[ ] 제목과 본문 오탈자 확인",
-            "[ ] 이미지 위치와 표시 확인",
-            "[ ] 이미지 출처 및 사용 권한 확인",
-            "[ ] 링크 확인",
-            "[ ] 태그 입력",
-            "[ ] 공개 범위 확인",
+            "[ ] 01_네이버_제목.txt의 제목을 네이버 제목란에 입력",
+            "[ ] 02_네이버_본문.txt의 내용을 네이버 본문에 붙여넣기",
+            "[ ] 본문에 표시된 이미지 삽입 위치에 images 폴더의 파일 업로드",
+            "[ ] 코드 이미지가 모두 삽입되었는지 확인",
+            "[ ] 링크가 정상적으로 표시되는지 확인",
+            "[ ] 해시태그 확인 및 필요 시 네이버 태그 입력란에도 등록",
+            "[ ] 오탈자와 줄바꿈 확인",
             "[ ] 미리보기 후 직접 발행",
         ]
         (folder / "04_발행_체크리스트.txt").write_text(
-            "\n".join(checklist), encoding="utf-8"
+            "\n".join(checklist) + "\n", encoding="utf-8"
         )
 
         usage_guide = [
             "네이버 블로그 원고 사용 방법",
             "",
-            "1. 이 초안 폴더 전체와 images 폴더를 함께 다운로드합니다.",
-            "2. 01_네이버_원고.html 파일을 Chrome 또는 Edge에서 엽니다.",
-            "3. 상단의 '제목 복사'를 눌러 네이버 블로그 제목란에 붙여넣습니다.",
-            "4. 상단의 '본문 복사'를 눌러 네이버 블로그 본문에 붙여넣습니다.",
-            "5. 이미지가 빠졌거나 깨졌다면 images 폴더의 파일을 해당 위치에 직접 업로드합니다.",
-            "6. 표·링크·코드 이미지가 네이버 편집기에서 잘 보이는지 확인한 뒤 발행합니다.",
+            "이 폴더의 TXT 파일이 네이버 블로그에 사용할 기본 원고입니다.",
+            "HTML 파일은 미리보기 전용이며, HTML에서 본문을 복사하지 마세요.",
             "",
-            "참고: 네이버 편집기는 외부 HTML의 모든 스타일과 로컬 이미지 경로를 그대로 보존하지 않을 수 있습니다.",
-            "따라서 텍스트와 기본 서식을 먼저 붙여넣고, 이미지 표시만 마지막으로 확인하는 방식이 가장 안전합니다.",
+            "1. GitHub에서 해당 초안 폴더 전체를 다운로드하고 압축을 풉니다.",
+            "2. 01_네이버_제목.txt를 열어 제목 한 줄을 복사한 뒤 네이버 제목란에 붙여넣습니다.",
+            "3. 02_네이버_본문.txt를 메모장 또는 일반 텍스트 편집기로 열어 본문을 복사합니다.",
+            "4. 네이버 블로그 본문 편집기에 붙여넣습니다. 제목·강조·인용 서식은 네이버 편집기에서 적용합니다.",
+            "5. 본문에 표시된 [이미지 삽입 위치: images/파일명] 문구를 찾아 지우고, 그 위치에 사진 첨부 기능으로 이미지를 올립니다.",
+            "6. 코드 이미지는 같은 방식으로 images 폴더의 code_*.png 파일을 올립니다.",
+            "7. 링크와 해시태그를 확인하고 미리보기 후 직접 발행합니다.",
+            "",
+            "주의: 로컬 이미지 파일은 텍스트 붙여넣기만으로 네이버에 업로드되지 않습니다. images 폴더의 파일을 사진 첨부 기능으로 직접 등록해야 합니다.",
+            "06_미리보기.html은 참고용 화면이며, 복사·붙여넣기 원고로 사용하지 않습니다.",
         ]
         (folder / "00_네이버_블로그_사용방법.txt").write_text(
-            "\n".join(usage_guide), encoding="utf-8"
+            "\n".join(usage_guide) + "\n", encoding="utf-8"
         )
+
+        (folder / "06_미리보기.html").write_text(
+            wrap_html(title, body_html, tags, headings), encoding="utf-8"
+        )
+
+        # Remove files generated by earlier versions to avoid selecting the
+        # obsolete HTML-copy workflow by accident.
+        for obsolete_name in (
+            "01_네이버_원고.html", "02_네이버_원고.txt",
+            "03_이미지_목록.txt", "04_발행_체크리스트.txt",
+        ):
+            obsolete = folder / obsolete_name
+            if obsolete.exists():
+                obsolete.unlink()
 
         metadata = {
             "notion_page_id": page_id,
