@@ -45,7 +45,10 @@ def _rich_text_item(item: dict) -> str:
         if safe_color in color_map:
             value = f'<span style="color:{color_map[safe_color]}">{value}</span>'
 
-    href = item.get("href") or (item.get("text") or {}).get("link", {}).get("url")
+    # Notion may return text.link as null for ordinary, non-linked text.
+    text_obj = item.get("text") or {}
+    link_obj = text_obj.get("link") or {}
+    href = item.get("href") or link_obj.get("url")
     if href:
         value = f'<a href="{html.escape(href, quote=True)}">{value}</a>'
 
