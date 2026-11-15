@@ -1,4 +1,286 @@
 {
   "version": 1,
-  "pages": {}
+  "pages": {
+    "40dd9e12-9df7-808b-9e85-eed110493070": {
+      "folder": "2026-10-01_TEST_페이지_입니다",
+      "last_edited_time": "2026-11-08T06:12:00.000Z",
+      "status": "draft",
+      "title": "TEST 페이지 입니다.",
+      "date": "2026-10-01"
+    },
+    "40ad9e12-9df7-80b3-8c7a-e81bb1e89dbd": {
+      "folder": "2026-10-01_[TEST]_교육_테스트",
+      "last_edited_time": "2026-11-08T06:12:00.000Z",
+      "status": "draft",
+      "title": "[TEST]  교육 테스트",
+      "date": "2026-10-01"
+    },
+    "409d9e12-9df7-8052-b3ae-e564985e4101": {
+      "folder": "2026-10-01_[TEST]_gif,_url,_pdf,_등_인지_테스트",
+      "last_edited_time": "2026-11-08T06:12:00.000Z",
+      "status": "draft",
+      "title": "[TEST] gif, url, pdf, 등 인지 테스트",
+      "date": "2026-10-01"
+    },
+    "409d9e12-9df7-8090-b9d3-d5835555eb9c": {
+      "folder": "2026-10-01_[TEST]_노션_기능_테스트_(이미지)",
+      "last_edited_time": "2026-11-12T13:13:00.000Z",
+      "status": "draft",
+      "title": "[TEST] 노션 기능 테스트 (이미지)",
+      "date": "2026-10-01"
+    },
+    "40ad9e12-9df7-808c-8e07-c701400a738b": {
+      "folder": "2026-10-01_[TEST]_목차,_코드,_등_테스트",
+      "last_edited_time": "2026-11-08T06:12:00.000Z",
+      "status": "draft",
+      "title": "[TEST] 목차, 코드, 등 테스트",
+      "date": "2026-10-01"
+    },
+    "40ad9e12-9df7-80fb-955c-e4e4d60a1736": {
+      "folder": "2026-10-01_[TEST]_탭키_기능_작동_여부_테스트",
+      "last_edited_time": "2026-11-08T06:12:00.000Z",
+      "status": "draft",
+      "title": "[TEST] 탭키 기능 작동 여부 테스트",
+      "date": "2026-10-01"
+    },
+    "409d9e12-9df7-805f-b6b1-e821c5e22c5d": {
+      "folder": "2026-10-12_Linux_리눅스_기초_1일차_(D+1)",
+      "last_edited_time": "2026-11-12T13:13:00.000Z",
+      "status": "draft",
+      "title": "Linux : 리눅스 기초 1일차 (D+1)",
+      "date": "2026-10-12"
+    },
+    "409d9e12-9df7-8089-94a7-e128b104d28c": {
+      "folder": "2026-10-13_Linux_리눅스_기초_2일차_(D+2)",
+      "last_edited_time": "2026-11-12T13:13:00.000Z",
+      "status": "draft",
+      "title": "Linux : 리눅스 기초 2일차 (D+2)",
+      "date": "2026-10-13"
+    },
+    "409d9e12-9df7-80f7-85aa-e1e834241f93": {
+      "folder": "2026-10-14_Linux_리눅스_기초_3일차_(D+3)",
+      "last_edited_time": "2026-11-12T13:12:00.000Z",
+      "status": "draft",
+      "title": "Linux : 리눅스 기초  3일차 (D+3)",
+      "date": "2026-10-14"
+    },
+    "409d9e12-9df7-808c-909b-e8f809f9370e": {
+      "folder": "2026-10-15_Python_파이썬_프로그래밍_기초_문법_1일차_(D+4)",
+      "last_edited_time": "2026-11-12T13:13:00.000Z",
+      "status": "draft",
+      "title": "Python : 파이썬 프로그래밍 기초 문법  1일차 (D+4)",
+      "date": "2026-10-15"
+    },
+    "409d9e12-9df7-8029-ae58-eb88b17aedcb": {
+      "folder": "2026-10-16_Python_파이썬_프로그래밍_기초_문법_2일차_(D+5)",
+      "last_edited_time": "2026-11-12T13:13:00.000Z",
+      "status": "draft",
+      "title": "Python : 파이썬 프로그래밍 기초 문법 2일차 (D+5)",
+      "date": "2026-10-16"
+    },
+    "409d9e12-9df7-80e4-a7a4-ebe22c6c69ca": {
+      "folder": "2026-10-19_Python_파이썬_프로그래밍_심화_문법_1일차_(D+6)",
+      "last_edited_time": "2026-11-12T13:13:00.000Z",
+      "status": "draft",
+      "title": "Python : 파이썬 프로그래밍 심화 문법 1일차 (D+6)",
+      "date": "2026-10-19"
+    },
+    "409d9e12-9df7-803f-981c-f060d66305b6": {
+      "folder": "2026-10-20_Python_파이썬_프로그래밍_심화_문법_2일차_(D+7)",
+      "last_edited_time": "2026-11-12T13:13:00.000Z",
+      "status": "draft",
+      "title": "Python : 파이썬 프로그래밍 심화 문법 2일차 (D+7)",
+      "date": "2026-10-20"
+    },
+    "409d9e12-9df7-80de-9ff5-fcbc31efe7b6": {
+      "folder": "2026-10-21_Python_데이터_분석_및_실무_활용_1일차_(D+8)",
+      "last_edited_time": "2026-11-12T13:13:00.000Z",
+      "status": "draft",
+      "title": "Python : 데이터 분석 및 실무 활용 1일차 (D+8)",
+      "date": "2026-10-21"
+    },
+    "409d9e12-9df7-80e9-bae4-ea194a036fb1": {
+      "folder": "2026-10-22_Python_데이터_분석_및_실무_활용_2일차_(D+9)",
+      "last_edited_time": "2026-11-12T13:13:00.000Z",
+      "status": "draft",
+      "title": "Python : 데이터 분석 및 실무 활용 2일차 (D+9)",
+      "date": "2026-10-22"
+    },
+    "409d9e12-9df7-80c6-a867-f17060d3ef8d": {
+      "folder": "2026-10-23_Python_데이터_분석_및_실무_활용_3일차_(D+10)",
+      "last_edited_time": "2026-11-12T13:13:00.000Z",
+      "status": "draft",
+      "title": "Python : 데이터 분석 및 실무 활용 3일차 (D+10)",
+      "date": "2026-10-23"
+    },
+    "409d9e12-9df7-8005-bbc6-e2ed35c1246d": {
+      "folder": "2026-10-26_Python_Machine_Learning_1일차_(D+11)",
+      "last_edited_time": "2026-11-12T13:12:00.000Z",
+      "status": "draft",
+      "title": "Python : Machine Learning 1일차 (D+11)",
+      "date": "2026-10-26"
+    },
+    "409d9e12-9df7-802d-bbe2-cb4d97eb412f": {
+      "folder": "2026-10-27_Python_Machine_Learning_2일차_(D+12)",
+      "last_edited_time": "2026-11-12T13:12:00.000Z",
+      "status": "draft",
+      "title": "Python : Machine Learning 2일차 (D+12)",
+      "date": "2026-10-27"
+    },
+    "409d9e12-9df7-8021-86fe-e388faa78a68": {
+      "folder": "2026-10-28_Python_Machine_Learning_3일차_(D+13)",
+      "last_edited_time": "2026-11-12T13:12:00.000Z",
+      "status": "draft",
+      "title": "Python : Machine Learning 3일차 (D+13)",
+      "date": "2026-10-28"
+    },
+    "409d9e12-9df7-8029-a25c-ffd7a8d57ef8": {
+      "folder": "2026-10-29_Python_Machine_Learning_4일차_(D+14)",
+      "last_edited_time": "2026-11-12T13:12:00.000Z",
+      "status": "draft",
+      "title": "Python : Machine Learning 4일차 (D+14)",
+      "date": "2026-10-29"
+    },
+    "40ad9e12-9df7-8071-a0ca-f2b0a5322c6e": {
+      "folder": "2026-10-30_Python_Machine_Learning_5일차_(D+15)",
+      "last_edited_time": "2026-11-12T13:12:00.000Z",
+      "status": "draft",
+      "title": "Python : Machine Learning 5일차 (D+15)",
+      "date": "2026-10-30"
+    },
+    "195d9e12-9df7-835e-a3ff-81394b7de9cf": {
+      "folder": "2026-10-30_제목없음",
+      "last_edited_time": "2026-10-30T02:26:00.000Z",
+      "status": "draft",
+      "title": "제목없음",
+      "date": "2026-10-30"
+    },
+    "1f4d9e12-9df7-8335-900a-015cf04aa7cc": {
+      "folder": "2026-10-30_제목없음_1f4d9e",
+      "last_edited_time": "2026-10-30T02:26:00.000Z",
+      "status": "draft",
+      "title": "제목없음",
+      "date": "2026-10-30"
+    },
+    "40ad9e12-9df7-80d6-a5ec-f744d584eec3": {
+      "folder": "2026-10-31_Self-Taught_1주차부터_3주차까지_복습",
+      "last_edited_time": "2026-11-12T13:13:00.000Z",
+      "status": "draft",
+      "title": "Self-Taught : 1주차부터 3주차까지 복습",
+      "date": "2026-10-31"
+    },
+    "40ad9e12-9df7-8039-99f8-fc34404d7760": {
+      "folder": "2026-10-31_Self-Taught_4주차_진행될_내용_선행학습",
+      "last_edited_time": "2026-11-08T06:14:00.000Z",
+      "status": "draft",
+      "title": "Self-Taught : 4주차 진행될 내용 선행학습",
+      "date": "2026-10-31"
+    },
+    "40bd9e12-9df7-8021-b9c3-fc931c30a161": {
+      "folder": "2026-11-01_Self-Taught_블로그_개선_(메모_참고)",
+      "last_edited_time": "2026-11-08T06:14:00.000Z",
+      "status": "draft",
+      "title": "Self-Taught : 블로그 개선 (메모 참고)",
+      "date": "2026-11-01"
+    },
+    "40bd9e12-9df7-8016-aad9-f83c8c5d11d6": {
+      "folder": "2026-11-02_Python_ML_프로젝트_2개_진행_(D+16)",
+      "last_edited_time": "2026-11-12T13:14:00.000Z",
+      "status": "draft",
+      "title": "Python :  ML 프로젝트 2개 진행 (D+16)",
+      "date": "2026-11-02"
+    },
+    "40cd9e12-9df7-80e5-a67d-e4649b05c6b8": {
+      "folder": "2026-11-03_Python_Deep_Learning_1일차_(D+17)",
+      "last_edited_time": "2026-11-12T13:12:00.000Z",
+      "status": "draft",
+      "title": "Python :  Deep Learning 1일차 (D+17)",
+      "date": "2026-11-03"
+    },
+    "410d9e12-9df7-803b-a8b1-cd16629d97f4": {
+      "folder": "2026-11-04_Python_Deep_Learning_2일차_(D+18)",
+      "last_edited_time": "2026-11-12T13:12:00.000Z",
+      "status": "draft",
+      "title": "Python :  Deep Learning 2일차 (D+18)",
+      "date": "2026-11-04"
+    },
+    "410d9e12-9df7-80bb-8df9-ce7469c53bd3": {
+      "folder": "2026-11-05_Python_Deep_Learning_3일차_(D+19)",
+      "last_edited_time": "2026-11-12T13:12:00.000Z",
+      "status": "draft",
+      "title": "Python :  Deep Learning 3일차 (D+19)",
+      "date": "2026-11-05"
+    },
+    "410d9e12-9df7-80b3-b03e-ed41d3c9c99d": {
+      "folder": "2026-11-06_Python_Deep_Learning_4일차_(D+20)",
+      "last_edited_time": "2026-11-08T06:15:00.000Z",
+      "status": "draft",
+      "title": "Python :  Deep Learning 4일차 (D+20)",
+      "date": "2026-11-06"
+    },
+    "411d9e12-9df7-8073-bcdf-c50c0fc2ff35": {
+      "folder": "2026-11-07_Self-Taught_2026_로보월드_방문_후기",
+      "last_edited_time": "2026-11-08T06:14:00.000Z",
+      "status": "draft",
+      "title": "Self-Taught : 2026 로보월드 방문 후기",
+      "date": "2026-11-07"
+    },
+    "412d9e12-9df7-8034-9b50-fee677159e6e": {
+      "folder": "2026-11-08_Self-Taught_블로그_개선_(메모_참고)",
+      "last_edited_time": "2026-11-08T13:03:00.000Z",
+      "status": "draft",
+      "title": "Self-Taught : 블로그 개선 (메모 참고)",
+      "date": "2026-11-08"
+    },
+    "410d9e12-9df7-8078-b299-e80ccee1ba56": {
+      "folder": "2026-11-09_Python_Deep_Learning_5일차_(D+21)",
+      "last_edited_time": "2026-11-12T13:14:00.000Z",
+      "status": "draft",
+      "title": "Python :  Deep Learning 5일차 (D+21)",
+      "date": "2026-11-09"
+    },
+    "414d9e12-9df7-8056-bd46-dae5123cbef0": {
+      "folder": "2026-11-10_LLM_OpenAI_API_1일차_(D+22)",
+      "last_edited_time": "2026-11-12T13:13:00.000Z",
+      "status": "draft",
+      "title": "LLM OpenAI API  1일차 (D+22)",
+      "date": "2026-11-10"
+    },
+    "414d9e12-9df7-801a-b2e7-ce2b5d769b6e": {
+      "folder": "2026-11-11_LLM_Multimodal_2일차_(D+23)",
+      "last_edited_time": "2026-11-12T13:13:00.000Z",
+      "status": "draft",
+      "title": "LLM Multimodal 2일차 (D+23)",
+      "date": "2026-11-11"
+    },
+    "416d9e12-9df7-80f8-beeb-cba5eb9c4954": {
+      "folder": "2026-11-12_LLM_Tool&MCP_3일차_(D+24)",
+      "last_edited_time": "2026-11-13T00:34:00.000Z",
+      "status": "draft",
+      "title": "LLM Tool&MCP 3일차 (D+24)",
+      "date": "2026-11-12"
+    },
+    "417d9e12-9df7-80e6-a078-c949a7f94268": {
+      "folder": "2026-11-13_LLM_RAG_4일차_(D+25)",
+      "last_edited_time": "2026-11-13T05:43:00.000Z",
+      "status": "draft",
+      "title": "LLM RAG 4일차 (D+25)",
+      "date": "2026-11-13"
+    },
+    "419d9e12-9df7-80ec-9aa6-d54d02bf0d05": {
+      "folder": "2026-11-14_Self-Taught_블로그_개선_(메모_참고)",
+      "last_edited_time": "2026-11-15T01:59:00.000Z",
+      "status": "draft",
+      "title": "Self-Taught : 블로그 개선 (메모 참고)",
+      "date": "2026-11-14"
+    },
+    "419d9e12-9df7-8051-9227-c101b454ae81": {
+      "folder": "2026-11-15_[네이버_블로그_연동_테스트_입니다]",
+      "last_edited_time": "2026-11-15T04:56:00.000Z",
+      "status": "draft",
+      "title": "[네이버 블로그 연동 테스트 입니다]",
+      "date": "2026-11-15"
+    }
+  },
+  "last_scan": "2026-11-15T06:13:42.968457+00:00"
 }

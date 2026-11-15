@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Python : 파이썬 프로그래밍 심화 문법 2일차 (D+7)</title>
+<style>
+body { font-family: Arial, 'Malgun Gothic', sans-serif; line-height: 1.8; max-width: 820px; margin: 32px auto; padding: 0 20px; color: #222; }
+img { max-width: 100%; height: auto; }
+.code-image img { display:block; width:100%; border-radius:10px; }
+pre { overflow-x: auto; white-space: pre-wrap; background: #f3f3f3; padding: 14px; border-radius: 6px; }
+code { font-family: Consolas, monospace; }
+blockquote { border-left: 4px solid #888; padding: 8px 16px; margin-left: 0; background: #f7f7f7; }
+.callout { padding: 12px 16px; background: #f4f7fb; border-radius: 6px; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+figcaption { color: #666; font-size: .9em; }
+.todo { list-style: none; }
+.conversion-warning { color: #b45309; }
+a { overflow-wrap: anywhere; }
+</style>
+</head>
+<body>
+<header><h1>Python : 파이썬 프로그래밍 심화 문법 2일차 (D+7)</h1><p>파이썬 | 함수 정의, 모듈 활용, 파일 읽고 쓰기, OOP</p><p class="tags">#교육 #파이썬</p></header>
+<main>
+<h1>📚 2주차 Python 기초&amp;심화 문법 (2026.10.15 Thu ~ 2026.10.20 Tue)</h1>
+<p><strong>Total : 4 days</strong></p>
+<h2>📕 D. OOP | Object-Oriented Programming (2026.10.20 Tue)</h2>
+<h3>📃 a. OOP (객체지향 프로그래밍)</h3>
+<ul><li><strong>OOP</strong> : 데이터와 기능을 하나의 객체로 묶어 프로그램을 설계하는 방식</li><li><strong>Class (클래스)</strong> : 객체를 만들기 위한 설계도</li><li><strong>Instance (인스턴스)</strong> : 클래스를 기반으로 생성한 실제 객체</li><li><strong>Attribute (속성)</strong> : 객체가 가지는 데이터</li><li><strong>Method (메서드)</strong> : 객체가 수행하는 기능</li></ul>
+<figure class="code-image"><img src="images/code_plain_text_e4f93ccb26.png" alt="plain text code"><figcaption>plain text 코드</figcaption></figure>
+<ul><li><code>class</code> : 클래스 정의</li><li><code>__init__()</code> : 인스턴스 생성 시 초기화</li><li><code>self</code> : 메서드가 호출된 인스턴스 자신</li><li><code>robot</code> : <code>Robot</code> 클래스로 생성한 인스턴스</li></ul>
+<h3>📃 주요 OOP 개념</h3>
+<div class="table-wrap"><table><tbody><tr><th>개념</th><th>의미</th><th>예시</th></tr><tr><td><strong>상속 (Inheritance)</strong></td><td>기존 클래스의 속성과 기능을 물려받음</td><td><code>class Dog(Animal):</code></td></tr><tr><td><strong>다형성 (Polymorphism)</strong></td><td>같은 메서드 호출이 객체에 따라 다르게 동작</td><td><code>dog.speak()</code></td></tr><tr><td><strong>캡슐화 (Encapsulation)</strong></td><td>데이터와 기능을 묶고 내부 구현에 대한 직접 접근을 관리</td><td><code>_value</code>, <code>__value</code></td></tr><tr><td><strong>추상화 (Abstraction)</strong></td><td>핵심 기능만 외부에 노출하고 세부 구현을 감춤</td><td><code>move()</code> 인터페이스</td></tr></tbody></table></div>
+<h3>1. 상속 (Inheritance)</h3>
+<p>기존 클래스의 기능을 재사용하고 확장하는 개념</p>
+<figure class="code-image"><img src="images/code_plain_text_a979c76795.png" alt="plain text code"><figcaption>plain text 코드</figcaption></figure>
+<h3>2. 다형성 (Polymorphism)</h3>
+<p>같은 메서드 이름을 사용해도 객체에 따라 다른 결과를 낼 수 있는 개념</p>
+<figure class="code-image"><img src="images/code_plain_text_cfe2b6ac24.png" alt="plain text code"><figcaption>plain text 코드</figcaption></figure>
+<h3>3. 캡슐화 (Encapsulation)</h3>
+<p>객체 내부의 데이터를 보호하고 정해진 메서드를 통해 접근하도록 설계하는 개념</p>
+<figure class="code-image"><img src="images/code_plain_text_afd2fd748b.png" alt="plain text code"><figcaption>plain text 코드</figcaption></figure>
+<p>※ <code>__battery</code>는 이름 변경(Name Mangling)이 적용되어 직접 접근이 제한되지만, 완전한 보안 기능은 아닙니다.</p>
+<h3>4. 추상화 (Abstraction)</h3>
+<p>공통적으로 필요한 기능의 형태를 정의하고, 실제 동작 방식은 하위 클래스에서 구현하는 개념</p>
+<figure class="code-image"><img src="images/code_plain_text_6c8bf897ea.png" alt="plain text code"><figcaption>plain text 코드</figcaption></figure>
+<ul><li><code>ABC</code> : 추상 클래스 정의에 활용</li><li><code>@abstractmethod</code> : 하위 클래스에서 구현해야 하는 메서드 지정</li></ul>
+<hr>
+<h3>💡 핵심 요약</h3>
+<ul><li><strong>Class &amp; Instance</strong> : 클래스는 설계도, 인스턴스는 실제 객체</li><li><strong>상속</strong> : 기존 기능을 물려받아 재사용</li><li><strong>다형성</strong> : 동일한 인터페이스로 다양한 동작 수행</li><li><strong>캡슐화</strong> : 데이터와 기능을 묶고 접근을 관리</li><li><strong>추상화</strong> : 핵심 기능과 인터페이스를 정의하고 세부 구현을 감춤</li></ul>
+<p><strong>🎯 학습 목표:</strong> 클래스를 사용해 객체를 생성하고, 객체지향 프로그래밍의 4가지 핵심 원리를 이해할 수 있다.</p>
+</main>
+</body>
+</html>
