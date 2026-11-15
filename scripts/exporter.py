@@ -5,7 +5,7 @@ import re
 import json
 import mimetypes
 from pathlib import Path
-from datetime import datetime, date, timedelta, timezone
+from datetime import datetime, date, timezone
 from zoneinfo import ZoneInfo
 from urllib.parse import urlparse, unquote
 
@@ -121,8 +121,8 @@ def save_media(block: dict, folder: Path, index: int) -> Path | None:
 
 
 def date_window(today: date) -> tuple[date, date]:
-    # B 방식: 오늘 기준 최근 3일(오늘 포함, 과거 2일) + 내일까지
-    return today - timedelta(days=2), today + timedelta(days=1)
+    # 테스트 모드: 한국시간 기준 오늘 날짜의 글만 처리
+    return today, today
 
 
 def main() -> None:
@@ -134,11 +134,12 @@ def main() -> None:
 
     processed = tracker.setdefault("pages", {})
     today_kst = datetime.now(KST).date()
-    pages = query_database()
-    candidates = []
     start_date, end_date = date_window(today_kst)
+    # Notion API 단계에서 오늘 날짜에 해당하는 페이지만 조회합니다.
+    pages = query_database(date_property=DATE_PROP, on_date=today_kst.isoformat())
+    candidates = []
 
-    # 데이터베이스의 페이지 메타데이터는 조회하되, 지정된 날짜 범위의 글만 처리합니다.
+    # 안전을 위해 반환된 페이지의 날짜도 한 번 더 확인합니다.
     for page in pages:
         page_date = date_of(page)
         if page_date is None:
@@ -150,7 +151,7 @@ def main() -> None:
 
     candidates.sort(key=lambda item: (item[0], title_of(item[1])))
     print(
-        f"[INFO] 대상 날짜 범위 {start_date.isoformat()} ~ {end_date.isoformat()}: "
+        f"[INFO] 한국시간 오늘 날짜 {today_kst.isoformat()} 대상: "
         f"{len(candidates)}개"
     )
     created = 0
@@ -259,8 +260,11 @@ def main() -> None:
         print(f"[DRAFT] {folder_name}")
 
     tracker["last_scan"] = datetime.now(timezone.utc).isoformat()
-    # Full-database scan: no date-window metadata is applicable.
-    tracker.pop("scan_window", None)
+    tracker["scan_window"] = {
+        "start": start_date.isoformat(),
+        "end": end_date.isoformat(),
+        "timezone": "Asia/Seoul",
+    }
     TRACKER.write_text(json.dumps(tracker, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"[DONE] 신규/갱신 초안 {created}개, 건너뜀 {skipped}개")
 

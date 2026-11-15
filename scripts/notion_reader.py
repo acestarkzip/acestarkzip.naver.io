@@ -58,16 +58,26 @@ def request(method: str, path: str, **kwargs: Any) -> dict:
     raise RuntimeError("Notion API 요청 재시도 횟수를 초과했습니다.")
 
 
-def query_database() -> list[dict]:
-    """Return all database pages, following Notion pagination."""
+def query_database(
+    date_property: str | None = None,
+    on_date: str | None = None,
+) -> list[dict]:
+    """Return database pages, optionally filtering a Notion date property to one day."""
     if not DB:
         raise RuntimeError("NOTION_DATABASE_ID가 설정되지 않았습니다.")
+    if (date_property is None) != (on_date is None):
+        raise ValueError("date_property와 on_date는 함께 지정해야 합니다.")
 
     results: list[dict] = []
     cursor = None
 
     while True:
         payload: dict[str, Any] = {"page_size": 100}
+        if date_property and on_date:
+            payload["filter"] = {
+                "property": date_property,
+                "date": {"equals": on_date},
+            }
         if cursor:
             payload["start_cursor"] = cursor
 
