@@ -91,6 +91,7 @@ def _render_list(
     code_image_dir: Path | None = None,
     headings: list[dict[str, Any]] | None = None,
     heading_counts: dict[str, int] | None = None,
+    contact_card: dict[str, Any] | None = None,
 ) -> tuple[str, int]:
     tag = "ul" if kind == "bulleted_list_item" else "ol"
     items: list[str] = []
@@ -103,7 +104,7 @@ def _render_list(
             lines.append(("• " if tag == "ul" else f"{len(items) + 1}. ") + raw)
         nested = render_blocks(
             block.get("_children") or [], image_map, lines, depth + 1,
-            code_image_dir, headings, heading_counts,
+            code_image_dir, headings, heading_counts, contact_card,
         )
         if item_html or nested:
             items.append(f"<li>{item_html}{nested}</li>")
@@ -154,8 +155,6 @@ def _media_url(data: dict) -> str:
     return media.get("url") or data.get("url") or ""
 
 
-# Dark editor palette inspired by familiar IDE syntax highlighting.
-# Keep the dark charcoal canvas and use distinct, readable token colors.
 _CODE_COLORS = {
     # More specific token types must come before their parent token types.
     Token.Comment.PreprocFile: "#D7BA7D",
@@ -303,6 +302,84 @@ def render_code_image(code: str, language: str, destination: Path) -> Path:
     return destination
 
 
+
+def create_contact_card(destination: Path, links: list[dict[str, str]]) -> Path:
+    """Create a branded image card for contact URLs while keeping URLs as text too."""
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    width, height = 1400, 560
+    image = Image.new("RGB", (width, height), "#111418")
+    draw = ImageDraw.Draw(image)
+
+    title_font = _code_font(40, bold=True)
+    subtitle_font = _code_font(20)
+    label_font = _code_font(18, bold=True)
+    value_font = _code_font(20)
+    small_font = _code_font(16)
+
+    draw.rounded_rectangle((8, 8, width - 8, height - 8), radius=28,
+                           fill="#171c21", outline="#303a42", width=3)
+    draw.rounded_rectangle((8, 8, width - 8, 22), radius=8, fill="#76b900")
+    draw.text((64, 58), "SSS ROBOTICS", font=title_font, fill="#ffffff")
+    draw.text((66, 118), "ROBOTICS  ·  SIMULATION  ·  PHYSICAL AI", font=subtitle_font, fill="#b8c3cc")
+    draw.line((64, 172, width - 64, 172), fill="#39434b", width=2)
+
+    # Keep the card compact and readable, even when one of the optional links is absent.
+    normalized = links[:3]
+    if not normalized:
+        normalized = [{"label": "WEBSITE", "url": "https://www.sssrobotics.com"}]
+
+    gap = 22
+    card_width = (width - 128 - gap * 2) // 3
+    card_top, card_bottom = 212, 450
+    for index, item in enumerate(normalized):
+        left = 64 + index * (card_width + gap)
+        right = left + card_width
+        draw.rounded_rectangle((left, card_top, right, card_bottom), radius=18,
+                               fill="#20272d", outline="#3a454d", width=2)
+        draw.rounded_rectangle((left + 24, card_top + 26, left + 34, card_top + 68), radius=5,
+                               fill="#76b900")
+        label = str(item.get("label", "LINK")).upper()
+        draw.text((left + 54, card_top + 26), label, font=label_font, fill="#a6e65c")
+        value = str(item.get("url", ""))
+        # Wrap long URLs based on measured width.
+        max_width = card_width - 48
+        chunks: list[str] = []
+        current = ""
+        for char in value:
+            candidate = current + char
+            if current and draw.textlength(candidate, font=value_font) > max_width:
+                chunks.append(current)
+                current = char
+            else:
+                current = candidate
+        if current:
+            chunks.append(current)
+        y = card_top + 100
+        for chunk in chunks[:4]:
+            draw.text((left + 26, y), chunk, font=value_font, fill="#f1f5f7")
+            y += 34
+
+    draw.text((66, 490), "S급 로봇 연구소  |  www.sssrobotics.com", font=small_font, fill="#89969f")
+    image.save(destination, "PNG", optimize=True)
+    return destination
+
+
+def _image_number(path: str) -> int | None:
+    """Extract an ordered image number from current or legacy asset names."""
+    value = path or ""
+    match = re.search(r"(?:^|/)(?:이미지_)?(\d+)_", value)
+    if match:
+        return int(match.group(1))
+    # Older drafts used names such as images/image_01.png.
+    match = re.search(r"(?:^|/)image_(\d+)\.", value, flags=re.IGNORECASE)
+    return int(match.group(1)) if match else None
+
+
+def _is_contact_heading(text: str) -> bool:
+    compact = re.sub(r"[^\w가-힣]+", "", text, flags=re.UNICODE).lower()
+    return compact in {"contactus", "연락처", "문의", "contact"}
+
+
 def _slugify_heading(text: str, counts: dict[str, int]) -> str:
     base = re.sub(r"[^\w가-힣-]+", "-", text.lower(), flags=re.UNICODE)
     base = re.sub(r"-+", "-", base).strip("-") or "section"
@@ -320,6 +397,7 @@ def render_blocks(
     lines: list[str], depth: int = 0, code_image_dir: Path | None = None,
     headings: list[dict[str, Any]] | None = None,
     heading_counts: dict[str, int] | None = None,
+    contact_card: dict[str, Any] | None = None,
 ) -> str:
     """Convert Notion blocks into a simple, copy-friendly Naver Blog article."""
     if depth > 20:
@@ -343,7 +421,7 @@ def render_blocks(
         if kind in ("bulleted_list_item", "numbered_list_item"):
             rendered, index = _render_list(
                 blocks, index, kind, image_map, lines, depth,
-                code_image_dir, headings, heading_counts,
+                code_image_dir, headings, heading_counts, contact_card,
             )
             if rendered:
                 output.append(rendered)
@@ -362,14 +440,21 @@ def render_blocks(
                 # One page title (H1); all body headings use H2-H4 for a compact hierarchy.
                 level = min(int(kind[-1]) + 1, 5)
                 heading_id = _slugify_heading(raw, heading_counts)
-                headings.append({"level": level, "title": raw.strip(), "id": heading_id})
+                headings.append({"level": level, "source_level": int(kind[-1]), "title": raw.strip(), "id": heading_id})
                 heading_style = {
-                    2: "font-size:1.45em;font-weight:700;margin:1.6em 0 .55em;",
-                    3: "font-size:1.2em;font-weight:700;margin:1.25em 0 .45em;",
-                    4: "font-size:1.05em;font-weight:700;margin:1em 0 .35em;",
-                    5: "font-size:.98em;font-weight:700;margin:.9em 0 .3em;",
+                    2: "font-size:30pt;font-weight:700;color:#000;margin:1.6em 0 .55em;",
+                    3: "font-size:28pt;font-weight:700;color:#000;margin:1.25em 0 .45em;",
+                    4: "font-size:24pt;font-weight:700;color:#000;margin:1em 0 .35em;",
+                    5: "font-size:19pt;font-weight:700;color:#000;margin:.9em 0 .3em;",
                 }[level]
                 output.append(f'<h{level} style="{heading_style}">{value}</h{level}>')
+                if contact_card and _is_contact_heading(raw):
+                    card_src = html.escape(str(contact_card.get("path", "")), quote=True)
+                    if card_src:
+                        output.append(
+                            f'<p><img src="{card_src}" alt="SSS Robotics 연락처 링크 카드" '
+                            'style="display:block;max-width:100%;height:auto;margin:14px 0;"></p>'
+                        )
                 lines.extend(["", raw.strip(), ""])
 
         elif kind == "to_do":
@@ -393,7 +478,7 @@ def render_blocks(
                 icon_text = icon.get("emoji") or "💡"
                 nested = render_blocks(
                     children, image_map, lines, depth + 1, code_image_dir,
-                    headings, heading_counts,
+                    headings, heading_counts, contact_card,
                 )
                 content = f"<p><strong>{html.escape(icon_text)} {value}</strong></p>" if value else ""
                 output.append(
@@ -409,9 +494,13 @@ def render_blocks(
             if code.strip():
                 language_raw = str(data.get("language") or "text")
                 if code_image_dir is not None:
-                    image_path = code_image_dir / code_image_filename(code, language_raw)
-                    render_code_image(code, language_raw, image_path)
-                    src = "images/" + image_path.name
+                    mapped_src = image_map.get(block.get("id"))
+                    if mapped_src:
+                        src = mapped_src
+                    else:
+                        image_path = code_image_dir / code_image_filename(code, language_raw)
+                        render_code_image(code, language_raw, image_path)
+                        src = "images/" + image_path.name
                     output.append(
                         f'<p><img src="{html.escape(src, quote=True)}" '
                         'style="display:block;max-width:100%;height:auto;margin:12px 0;" '
@@ -485,7 +574,7 @@ def render_blocks(
             # Toggle UI is flattened to a bold label and visible body for simple pasting.
             nested = render_blocks(
                 children, image_map, lines, depth + 1, code_image_dir,
-                headings, heading_counts,
+                headings, heading_counts, contact_card,
             )
             if raw.strip():
                 output.append(f"<p><strong>▸ {value}</strong></p>")
@@ -500,7 +589,7 @@ def render_blocks(
         elif kind in ("column_list", "column", "synced_block", "template"):
             nested = render_blocks(
                 children, image_map, lines, depth + 1, code_image_dir,
-                headings, heading_counts,
+                headings, heading_counts, contact_card,
             )
             if nested:
                 output.append(nested)
@@ -523,7 +612,7 @@ def render_blocks(
         if children and kind not in handled_children:
             nested = render_blocks(
                 children, image_map, lines, depth + 1, code_image_dir,
-                headings, heading_counts,
+                headings, heading_counts, contact_card,
             )
             if nested:
                 output.append(nested)
@@ -547,7 +636,11 @@ def _plain_rich_text(items: list[dict] | str | None) -> str:
         href = _safe_link(item)
         if href and href not in value:
             normalized = href.removeprefix("mailto:")
-            if normalized not in value:
+            # Compare URLs without a trailing slash so a display URL and its
+            # canonical hyperlink target are not printed twice in the draft.
+            normalized_compare = normalized.rstrip("/")
+            value_compare = value.rstrip("/")
+            if normalized_compare and normalized_compare not in value_compare:
                 value = f"{value} ({href})" if value else href
         parts.append(value)
     return "".join(parts).replace("\r\n", "\n").replace("\r", "\n")
@@ -558,6 +651,7 @@ def render_plain_text(
     image_map: dict[str, str] | None = None,
     headings: list[dict[str, Any]] | None = None,
     code_sources: list[dict[str, str]] | None = None,
+    contact_card: dict[str, Any] | None = None,
 ) -> str:
     """Render Notion blocks as plain text intended for Naver SmartEditor.
 
@@ -568,6 +662,10 @@ def render_plain_text(
     headings = headings or []
     if code_sources is None:
         code_sources = []
+    fallback_image_number = max(
+        (_image_number(path) or 0 for path in image_map.values()),
+        default=0,
+    )
 
     def visible_toc() -> list[str]:
         rows: list[str] = []
@@ -584,7 +682,7 @@ def render_plain_text(
     toc_written = False
 
     def render(items: list[dict], depth: int = 0) -> list[str]:
-        nonlocal toc_written
+        nonlocal toc_written, fallback_image_number
         result: list[str] = []
         index = 0
         indent = "  " * depth
@@ -631,6 +729,10 @@ def render_plain_text(
                     else:
                         original_level = int(kind[-1])
                         result.append("  " * max(0, original_level - 1) + raw)
+                        if contact_card and _is_contact_heading(raw):
+                            card_path = str(contact_card.get("path", ""))
+                            card_number = int(contact_card.get("number", _image_number(card_path) or 0))
+                            result.append(indent + f"🟨 이미지 {card_number:02d} 삽입 위치: SSS Robotics 연락처 링크 카드")
                         result.append("")
 
             elif kind == "to_do":
@@ -655,8 +757,17 @@ def render_plain_text(
                 code = _plain_rich_text(data.get("rich_text") or [])
                 if code.strip():
                     language = str(data.get("language") or "text")
-                    filename = code_image_filename(code, language)
-                    result.append(indent + f"[코드 이미지 삽입 위치: images/{filename}]")
+                    mapped_path = image_map.get(block.get("id"), "")
+                    if mapped_path:
+                        filename = Path(mapped_path).name
+                        marker_path = mapped_path
+                        number = _image_number(marker_path) or 0
+                    else:
+                        fallback_image_number += 1
+                        number = fallback_image_number
+                        filename = f"이미지_{number:02d}_{code_image_filename(code, language)}"
+                        marker_path = f"images/{filename}"
+                    result.append(indent + f"🟨 이미지 {number:02d} 삽입 위치: {language.upper()} 코드 이미지")
                     result.append(indent + "(코드 원문이 필요하면 05_코드_원문.txt를 참고하세요.)")
                     code_sources.append({"language": language, "code": code, "filename": filename})
                     result.append("")
@@ -668,9 +779,11 @@ def render_plain_text(
                 caption = _plain_rich_text(data.get("caption") or []).strip()
                 local_path = image_map.get(block.get("id"), "")
                 if local_path:
-                    result.append(indent + f"[이미지 삽입 위치: {local_path}]")
+                    number = _image_number(local_path)
+                    label = f"🟨 이미지 {number:02d} 삽입 위치: {caption or '본문 이미지'}" if number else f"🟨 이미지 삽입 위치: {caption or '본문 이미지'}"
+                    result.append(indent + label)
                 else:
-                    result.append(indent + "[이미지 파일 확인 필요: 이미지 목록 참조]")
+                    result.append(indent + "🟨 이미지 파일 확인 필요: 이미지 목록 참조")
                 if caption:
                     result.append(indent + caption)
                 result.append("")
@@ -686,7 +799,16 @@ def render_plain_text(
                 label = data.get("name") or caption or title or (urlparse(url).netloc if url else "관련 링크")
                 local_path = image_map.get(block.get("id"), "")
                 if local_path:
-                    result.append(indent + f"[첨부 파일 확인: {local_path}]")
+                    local_suffix = Path(local_path).suffix.lower()
+                    if local_suffix in {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp"}:
+                        number = _image_number(local_path)
+                        image_label = caption or title or str(label) or "첨부 이미지"
+                        if number is not None:
+                            result.append(indent + f"🟨 이미지 {number:02d} 삽입 위치: {image_label}")
+                        else:
+                            result.append(indent + f"🟨 이미지 삽입 위치: {image_label}")
+                    else:
+                        result.append(indent + f"[첨부 파일 확인: {local_path}]")
                 elif url:
                     result.append(indent + f"🔗 {label}")
                     result.append(indent + url)
@@ -799,11 +921,12 @@ def wrap_html(
 body {{ font-family: Arial, 'Malgun Gothic', 'Noto Sans CJK KR', sans-serif; line-height: 1.8; max-width: 820px; margin: 32px auto; padding: 0 20px; color: #222; }}
 .preview-note {{ padding: 10px 14px; margin-bottom: 20px; background: #f4f7fb; border-left: 4px solid #64748b; color: #475569; font-size: 14px; }}
 header h1 {{ font-size: 2em; line-height: 1.35; margin: 0 0 18px; }}
-article h2 {{ font-size: 1.55em; margin: 1.8em 0 .6em; }}
-article h3 {{ font-size: 1.25em; margin: 1.5em 0 .5em; }}
-article h4 {{ font-size: 1.08em; margin: 1.3em 0 .4em; }}
-article h5 {{ font-size: 1em; margin: 1.1em 0 .35em; }}
-article p {{ margin: .8em 0; }}
+article h2 {{ font-size:30pt; margin:1.8em 0 .6em; color:#000; }}
+article h3 {{ font-size:28pt; margin:1.5em 0 .5em; color:#000; }}
+article h4 {{ font-size:24pt; margin:1.3em 0 .4em; color:#000; }}
+article h5 {{ font-size:19pt; margin:1.1em 0 .35em; color:#000; }}
+article p {{ margin:.8em 0; font-size:15pt; color:#000; }}
+article mark {{ background:#fff176; color:#000; padding:2px 4px; }}
 article img {{ display:block; max-width:100%; height:auto; margin:14px auto; }}
 article ul, article ol {{ padding-left:26px; margin:10px 0; }}
 article li {{ margin:5px 0; }}

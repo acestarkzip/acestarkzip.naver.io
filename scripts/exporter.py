@@ -4,6 +4,7 @@ import os
 import re
 import json
 import mimetypes
+import zipfile
 from pathlib import Path
 from datetime import datetime, date, timezone
 from zoneinfo import ZoneInfo
@@ -12,7 +13,10 @@ from urllib.parse import urlparse, unquote
 import requests
 
 from notion_reader import query_database, get_blocks, load_tree
-from content_converter import plain, render_blocks, render_plain_text, wrap_html
+from content_converter import (
+    plain, render_blocks, render_plain_text, wrap_html, render_code_image,
+    code_image_filename, create_contact_card, _is_contact_heading,
+)
 from docx_exporter import write_naver_docx
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -70,14 +74,120 @@ def safe_name(value: str) -> str:
     return value[:90] or "untitled"
 
 
-def media_blocks(blocks: list[dict]) -> list[dict]:
-    found = []
-    for block in blocks:
-        if block.get("type") in ("image", "file", "pdf"):
-            found.append(block)
-        found.extend(media_blocks(block.get("_children") or []))
-    return found
+def _is_raster_media_block(block: dict) -> bool:
+    kind = block.get("type")
+    if kind == "image":
+        return True
+    if kind not in {"file", "pdf"}:
+        return False
+    data = block.get(kind) or {}
+    media = data.get("file") or data.get("external") or {}
+    mime = str(media.get("mime_type", "")).lower()
+    url = str(media.get("url", "")).lower().split("?", 1)[0]
+    name = str(data.get("name", "")).lower().split("?", 1)[0]
+    image_suffixes = (".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp")
+    return (
+        mime.startswith("image/")
+        or url.endswith(image_suffixes)
+        or name.endswith(image_suffixes)
+    )
 
+
+def ordered_visual_events(blocks: list[dict], include_contact_card: bool = False):
+    """Yield photos, code screenshots, and the contact card in document order."""
+    contact_emitted = False
+
+    def walk(items: list[dict]):
+        nonlocal contact_emitted
+        for block in items or []:
+            kind = block.get("type", "")
+            data = block.get(kind) or {}
+            if _is_raster_media_block(block):
+                yield "image", block
+            elif kind == "code":
+                yield "code", block
+            elif include_contact_card and not contact_emitted and kind in {
+                "heading_1", "heading_2", "heading_3", "heading_4"
+            }:
+                heading_text = plain(data.get("rich_text") or data.get("title") or []).strip()
+                if heading_text and _is_contact_heading(heading_text):
+                    contact_emitted = True
+                    yield "contact", block
+            yield from walk(block.get("_children") or [])
+
+    yield from walk(blocks)
+
+def collect_contact_links(blocks: list[dict]) -> list[dict[str, str]]:
+    """Read public contact URLs only from the content below the Contact heading."""
+    found: list[str] = []
+    contact_active = False
+    url_re = re.compile(r"https?://[^\s<>\]\[()]+", re.I)
+    email_re = re.compile(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}", re.I)
+
+    def visit(items: list[dict]):
+        nonlocal contact_active
+        for block in items or []:
+            kind = block.get("type", "")
+            data = block.get(kind) or {}
+            if kind in {"heading_1", "heading_2", "heading_3", "heading_4"}:
+                heading = plain(data.get("rich_text") or data.get("title") or []).strip()
+                if heading and _is_contact_heading(heading):
+                    contact_active = True
+            if contact_active:
+                media_url = data.get("url")
+                if isinstance(media_url, str) and media_url.startswith("http"):
+                    found.append(media_url.rstrip(".,;:!?)"))
+                for rich_items in (data.get("rich_text"), data.get("title")):
+                    if not isinstance(rich_items, list):
+                        continue
+                    for item in rich_items:
+                        item = item or {}
+                        text_obj = item.get("text") or {}
+                        href = item.get("href") or (text_obj.get("link") or {}).get("url")
+                        if href:
+                            if href.lower().startswith("mailto:"):
+                                found.append(href)
+                            elif href.startswith("http"):
+                                found.append(href.rstrip(".,;:!?)"))
+                        raw = item.get("plain_text") or text_obj.get("content") or ""
+                        found.extend(match.rstrip(".,;:!?)") for match in url_re.findall(raw))
+                        found.extend(email_re.findall(raw))
+                if kind in {"bookmark", "embed", "link_preview"}:
+                    url = data.get("url")
+                    if isinstance(url, str) and url.startswith("http"):
+                        found.append(url.rstrip(".,;:!?)"))
+            visit(block.get("_children") or [])
+
+    visit(blocks)
+
+    unique: list[str] = []
+    for url in found:
+        url = url.strip()
+        if url and url not in unique:
+            unique.append(url)
+
+    youtube = next((u for u in unique if "youtube.com" in u or "youtu.be" in u), "")
+    if youtube.endswith("/shorts"):
+        channel = next((u for u in unique if ("youtube.com" in u or "youtu.be" in u) and not u.endswith("/shorts")), "")
+        if channel:
+            youtube = channel
+
+    website = next((u for u in unique if "sssrobotics.com" in u and "youtube.com" not in u), "")
+    email = next((u for u in unique if u.lower().startswith("mailto:") or "@" in u and not u.startswith("http")), "")
+
+    result: list[dict[str, str]] = []
+    if youtube:
+        result.append({"label": "YouTube", "url": youtube})
+    if website:
+        result.append({"label": "Website", "url": website})
+    if email:
+        result.append({"label": "Email", "url": email.removeprefix("mailto:")})
+    for url in unique:
+        if len(result) >= 3:
+            break
+        if all(url not in item["url"] for item in result):
+            result.append({"label": "Link", "url": url})
+    return result
 
 def save_media(block: dict, folder: Path, index: int) -> Path | None:
     data = block.get(block.get("type"), {}) or {}
@@ -90,9 +200,15 @@ def save_media(block: dict, folder: Path, index: int) -> Path | None:
     original_name = data.get("name") or f"media_{index}"
     extension = Path(unquote(urlparse(url).path)).suffix.lower()
     if extension not in (".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".pdf"):
-        extension = mimetypes.guess_extension(media.get("mime_type", "")) or ".bin"
+        # Some Notion CDN URLs have no filename suffix; fall back to the
+        # original attachment name before guessing from the MIME type.
+        name_extension = Path(unquote(str(data.get("name") or ""))).suffix.lower()
+        if name_extension in (".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".pdf"):
+            extension = name_extension
+        else:
+            extension = mimetypes.guess_extension(media.get("mime_type", "")) or ".bin"
 
-    destination = folder / f"{index:02d}_{safe_name(Path(original_name).stem)}{extension}"
+    destination = folder / f"이미지_{index:02d}_{safe_name(Path(original_name).stem)}{extension}"
     try:
         with requests.get(url, stream=True, timeout=30) as response:
             response.raise_for_status()
@@ -120,6 +236,36 @@ def save_media(block: dict, folder: Path, index: int) -> Path | None:
         print(f"[WARN] 미디어 다운로드 실패 ({original_name}): {error}")
         return None
 
+
+
+def create_image_bundle(
+    draft_folder: Path,
+    image_manifest: list[dict[str, str | int]],
+) -> Path | None:
+    """Bundle all generated images into one ordered ZIP for easy bulk upload."""
+    archive_path = draft_folder / "07_이미지_전체.zip"
+    available = [
+        item for item in sorted(image_manifest, key=lambda x: int(x.get("number", 0)))
+        if (draft_folder / str(item.get("path", ""))).is_file()
+    ]
+    if not available:
+        archive_path.unlink(missing_ok=True)
+        return None
+
+    with zipfile.ZipFile(archive_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        readme_lines = [
+            "SSS Robotics 네이버 블로그 이미지 모음",
+            "압축을 푼 뒤 파일명 앞의 번호 순서대로 네이버 편집기에 첨부하세요.",
+            "",
+        ]
+        for item in available:
+            source = draft_folder / str(item["path"])
+            archive.write(source, arcname=source.name)
+            readme_lines.append(
+                f"{int(item.get('number', 0)):02d}. {item.get('label', source.name)} — {source.name}"
+            )
+        archive.writestr("이미지_업로드_순서.txt", "\n".join(readme_lines) + "\n")
+    return archive_path
 
 def date_window(today: date) -> tuple[date, date]:
     # 테스트 모드: 한국시간 기준 오늘 날짜의 글만 처리
@@ -189,47 +335,103 @@ def main() -> None:
 
         blocks = load_tree(get_blocks(page_id))
         images_folder = folder / "images"
-        if images_folder.exists():
-            for stale_code_image in images_folder.glob("code_*.png"):
-                stale_code_image.unlink()
-        image_map = {}
-        image_names = []
+        images_folder.mkdir(parents=True, exist_ok=True)
+        # Remove only generated image assets from prior runs; preserve any unrelated files.
+        for old_file in images_folder.iterdir():
+            if old_file.is_file() and (
+                old_file.name.startswith("이미지_")
+                or old_file.name.startswith("code_")
+                or old_file.name.startswith("image_")  # legacy unnumbered photo assets
+                or re.match(r"^\d{2}_", old_file.name)
+            ):
+                old_file.unlink()
 
-        for index, block in enumerate(media_blocks(blocks), start=1):
-            saved = save_media(block, folder / "images", index)
-            if not saved:
-                continue
-            image_names.append(saved.name)
-            if block.get("id"):
-                image_map[block["id"]] = f"images/{saved.name}"
+        contact_links = collect_contact_links(blocks)
+        image_map: dict[str, str] = {}
+        image_manifest: list[dict[str, str | int]] = []
+        code_sources: list[dict[str, str]] = []
+        contact_card: dict[str, str | int] | None = None
+        asset_number = 0
+
+        for event_type, block in ordered_visual_events(blocks, include_contact_card=bool(contact_links)):
+            data = block.get(block.get("type"), {}) or {}
+            if event_type == "image":
+                candidate_number = asset_number + 1
+                saved = save_media(block, images_folder, candidate_number)
+                if not saved:
+                    continue
+                asset_number = candidate_number
+                relative_path = f"images/{saved.name}"
+                if block.get("id"):
+                    image_map[block["id"]] = relative_path
+                caption = plain(data.get("caption") or []).strip() if isinstance(data.get("caption"), list) else ""
+                image_manifest.append({
+                    "number": asset_number,
+                    "path": relative_path,
+                    "label": caption or data.get("name") or "본문 이미지",
+                    "kind": "photo",
+                })
+
+            elif event_type == "code":
+                code = plain(data.get("rich_text") or [])
+                if not code.strip():
+                    continue
+                asset_number += 1
+                language = str(data.get("language") or "text")
+                digest_name = code_image_filename(code, language)
+                stem = Path(digest_name).stem
+                filename = f"이미지_{asset_number:02d}_{safe_name(stem)}.png"
+                destination = images_folder / filename
+                render_code_image(code, language, destination)
+                relative_path = f"images/{filename}"
+                if block.get("id"):
+                    image_map[block["id"]] = relative_path
+                code_sources.append({"language": language, "code": code, "filename": filename})
+                image_manifest.append({
+                    "number": asset_number,
+                    "path": relative_path,
+                    "label": f"{language.upper()} 코드 이미지",
+                    "kind": "code",
+                })
+
+            elif event_type == "contact":
+                asset_number += 1
+                filename = f"이미지_{asset_number:02d}_SSS_Robotics_연락처_링크.png"
+                destination = images_folder / filename
+                create_contact_card(destination, contact_links)
+                contact_card = {
+                    "number": asset_number,
+                    "path": f"images/{filename}",
+                }
+                image_manifest.append({
+                    "number": asset_number,
+                    "path": f"images/{filename}",
+                    "label": "SSS Robotics 연락처 링크 카드",
+                    "kind": "contact",
+                })
 
         folder.mkdir(parents=True, exist_ok=True)
+        image_bundle = create_image_bundle(folder, image_manifest)
         text_lines = []
         headings = []
         body_html = render_blocks(
             blocks, image_map, text_lines,
-            code_image_dir=folder / "images",
+            code_image_dir=images_folder,
             headings=headings,
+            contact_card=contact_card,
         )
-        # Include generated code screenshots as well as downloaded Notion media.
-        code_images = sorted((folder / "images").glob("code_*.png"))
-        image_names.extend(path.name for path in code_images if path.name not in image_names)
 
-        # TXT files are the primary publishing artifacts for Naver SmartEditor.
-        # HTML is kept only as an optional visual preview, never as the copy source.
-        body_text = render_plain_text(blocks, image_map, headings)
+        # TXT is the plain-text fallback. DOCX carries exact heading sizes and yellow image markers.
+        body_text = render_plain_text(
+            blocks, image_map, headings, code_sources, contact_card=contact_card
+        )
         (folder / "01_네이버_제목.txt").write_text(title.strip() + "\n", encoding="utf-8")
 
         body_parts = [body_text.strip()]
         if tags:
             body_parts.extend(["", " ".join("#" + tag for tag in tags)])
         final_body_text = "\n".join(part for part in body_parts if part is not None).strip() + "\n"
-        (folder / "02_네이버_본문.txt").write_text(
-            final_body_text,
-            encoding="utf-8",
-        )
-        # TXT remains plain text. This DOCX version highlights only the image
-        # insertion instructions in yellow for easy spotting while editing.
+        (folder / "02_네이버_본문.txt").write_text(final_body_text, encoding="utf-8")
         write_naver_docx(
             final_body_text,
             folder / "02_네이버_본문_서식.docx",
@@ -239,30 +441,23 @@ def main() -> None:
         image_list_lines = [
             "네이버 블로그 이미지 업로드 목록",
             "",
-            "본문의 [이미지 삽입 위치: ...] 표시를 찾아 해당 파일을 업로드하세요.",
-            "이미지는 본문에 표시된 순서대로 삽입하면 됩니다.",
+            "본문의 🟨 이미지 NN 삽입 위치 표시를 위에서부터 순서대로 확인하세요.",
+            "파일명에도 같은 번호가 붙어 있어 순서대로 선택하면 됩니다.",
+            "모든 이미지는 07_이미지_전체.zip에도 한 번에 묶여 있습니다.",
             "",
         ]
-        # Match the checklist order to the image markers as they appear in the body.
-        ordered_image_names = sorted(
-            image_names,
-            key=lambda name: body_text.find(f"images/{name}")
-            if body_text.find(f"images/{name}") >= 0 else len(body_text) + image_names.index(name),
-        )
         image_list_lines.extend(
-            f"{index:02d}. images/{name}"
-            for index, name in enumerate(ordered_image_names, start=1)
+            f"{int(item['number']):02d}. {item['label']} — {item['path']}"
+            for item in image_manifest
         )
-        if not image_names:
-            image_list_lines.append("다운로드된 이미지가 없습니다.")
+        if not image_manifest:
+            image_list_lines.append("업로드할 이미지가 없습니다.")
         (folder / "03_이미지_목록.txt").write_text(
             "\n".join(image_list_lines) + "\n", encoding="utf-8"
         )
 
         # Keep original code in a separate optional file. The main article
         # points to its PNG at the exact insertion location.
-        code_sources: list[dict[str, str]] = []
-        render_plain_text(blocks, image_map, headings, code_sources)
         code_backup_path = folder / "05_코드_원문.txt"
         if code_backup_path.exists() and not code_sources:
             code_backup_path.unlink()
@@ -285,9 +480,10 @@ def main() -> None:
         checklist = [
             "네이버 블로그 발행 전 체크리스트",
             "[ ] 01_네이버_제목.txt의 제목을 네이버 제목란에 입력",
-            "[ ] 02_네이버_본문_서식.docx를 Word에서 열어 이미지 삽입 안내의 노란색 표시를 확인",
-            "[ ] DOCX 본문을 복사해 네이버 본문에 붙여넣기 (TXT는 일반 텍스트 대체본)",
-            "[ ] 노란색으로 표시된 이미지 삽입 위치 문구를 지우고 해당 이미지 업로드",
+            "[ ] 02_네이버_본문_서식.docx를 Word에서 열어 본문을 복사해 네이버 편집기에 붙여넣기",
+            "[ ] 노란색 이미지 삽입 안내 문구를 지우고 해당 이미지 첨부",
+            "[ ] 07_이미지_전체.zip을 내려받아 압축을 풀고, 이미지 01부터 마지막 번호까지 첨부",
+            "[ ] 연락처 링크 카드 이미지와 텍스트 URL 확인",
             "[ ] 코드 이미지가 모두 삽입되었는지 확인",
             "[ ] 링크가 정상적으로 표시되는지 확인",
             "[ ] 해시태그 확인 및 필요 시 네이버 태그 입력란에도 등록",
@@ -301,21 +497,24 @@ def main() -> None:
         usage_guide = [
             "네이버 블로그 원고 사용 방법",
             "",
-            "02_네이버_본문_서식.docx는 이미지 삽입 위치를 노란색으로 표시한 서식 원고입니다.",
-            "02_네이버_본문.txt는 노란색 표시가 없는 일반 텍스트 대체본입니다.",
+            "네이버 편집기에 서식을 적용하려면 DOCX 파일을 기본 원고로 사용합니다.",
+            "TXT는 서식이 필요 없을 때 사용하는 일반 텍스트 대체본입니다.",
             "HTML 파일은 미리보기 전용이며, HTML에서 본문을 복사하지 마세요.",
             "",
             "1. GitHub에서 해당 초안 폴더 전체를 다운로드하고 압축을 풉니다.",
             "2. 01_네이버_제목.txt를 열어 제목 한 줄을 복사한 뒤 네이버 제목란에 붙여넣습니다.",
-            "3. 02_네이버_본문_서식.docx를 Word에서 엽니다.",
-            "4. 노란색으로 표시된 [이미지 삽입 위치] 또는 [코드 이미지 삽입 위치] 문구를 확인합니다.",
-            "5. DOCX 본문을 복사해 네이버 블로그 본문 편집기에 붙여넣습니다.",
-            "6. 네이버에 붙여넣은 뒤 노란색 안내 문구를 지우고 해당 이미지 파일을 사진 첨부 기능으로 올립니다.",
-            "7. TXT만 필요하면 02_네이버_본문.txt를 사용하세요. TXT에는 배경색이 저장되지 않습니다.",
-            "8. 링크와 해시태그를 확인하고 미리보기 후 직접 발행합니다.",
+            "3. 서식을 유지해 복사하려면 02_네이버_본문_서식.docx를 Word에서 엽니다.",
+            "4. DOCX에서 본문 전체를 복사해 네이버 편집기에 붙여넣습니다. 제목 크기는 # 30pt, ## 28pt, ### 24pt, #### 19pt, 일반 본문은 15pt로 지정되어 있습니다.",
+            "5. 노란색으로 표시된 🟨 이미지 NN 삽입 위치 문구를 확인하고, 문구를 지운 뒤 해당 이미지를 첨부합니다.",
+            "6. 사진을 한꺼번에 준비하려면 07_이미지_전체.zip을 내려받아 압축을 풉니다.",
+            "7. 압축을 푼 이미지 파일을 네이버 사진 첨부 창에서 여러 장 선택할 수 있습니다.",
+            "8. 본문 배치 순서는 파일명 앞 번호와 03_이미지_목록.txt를 기준으로 맞춥니다.",
+            "9. TXT만 필요하면 02_네이버_본문.txt를 사용하세요. TXT에는 글자 크기와 노란색 배경이 저장되지 않습니다.",
+            "10. URL은 연락처 카드 이미지에도 보이지만, 클릭할 수 있도록 텍스트 URL도 본문에 남겨 둡니다.",
+            "11. 최종 확인 후 직접 발행합니다.",
             "",
-            "주의: 로컬 이미지 파일은 텍스트 붙여넣기만으로 네이버에 업로드되지 않습니다. images 폴더의 파일을 사진 첨부 기능으로 직접 등록해야 합니다.",
-            "06_미리보기.html은 참고용 화면이며, 복사·붙여넣기 원고로 사용하지 않습니다.",
+            "주의: 로컬 이미지 파일은 본문 복사만으로 업로드되지 않습니다. 07_이미지_전체.zip에서 추출한 파일을 네이버 사진 첨부 기능으로 등록해야 합니다.",
+            "06_미리보기.html은 브라우저 확인용입니다. 서식이 필요한 원고는 DOCX, 순수 텍스트는 TXT를 사용하세요.",
         ]
         (folder / "00_네이버_블로그_사용방법.txt").write_text(
             "\n".join(usage_guide) + "\n", encoding="utf-8"

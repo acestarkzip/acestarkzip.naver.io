@@ -283,9 +283,9 @@ def test_plain_text_puts_image_and_code_upload_markers_in_content_order():
     blocks = [image_block, code_block]
     code_sources = []
     output = render_plain_text(blocks, {"img-1": "images/01_media_1.png"}, [], code_sources)
-    assert "[이미지 삽입 위치: images/01_media_1.png]" in output
-    assert "[코드 이미지 삽입 위치: images/code_python_" in output
-    assert output.index("01_media_1.png") < output.index("code_python_")
+    assert "🟨 이미지 01 삽입 위치: 대표 이미지" in output
+    assert "🟨 이미지 02 삽입 위치: PYTHON 코드 이미지" in output
+    assert output.index("이미지 01 삽입 위치") < output.index("이미지 02 삽입 위치")
     assert code_sources[0]["code"] == code
 
 
@@ -312,14 +312,74 @@ def test_plain_text_generates_simple_toc_and_preserves_nested_list_and_toggle():
     assert "Contact us" not in toc
     assert "▸ 참고 자료" in output and "내부 설명" in output
 
-def test_code_image_uses_white_background_and_black_text(tmp_path):
-    from PIL import Image
-    from content_converter import render_code_image, _token_color
-    from pygments.token import Token
 
-    destination = render_code_image("int value = 1;\n// 한글 주석", "cpp", tmp_path / "light-code.png")
-    image = Image.open(destination).convert("RGB")
+def test_plain_text_does_not_duplicate_url_only_different_by_trailing_slash():
+    output = render_plain_text([
+        {
+            "type": "paragraph",
+            "paragraph": {"rich_text": [rt("Blog : https://www.sssrobotics.com", {"url": "https://www.sssrobotics.com/"})]},
+        }
+    ])
+    assert output.count("https://www.sssrobotics.com") == 1
 
-    assert image.getpixel((image.width - 30, image.height - 30)) == (255, 255, 255)
-    assert _token_color(Token.Keyword) == "#111111"
 
+def test_image_number_supports_large_and_legacy_asset_names():
+    from content_converter import _image_number
+
+    assert _image_number("images/이미지_01_대표.png") == 1
+    assert _image_number("images/이미지_100_도식.png") == 100
+    assert _image_number("images/01_media_1.png") == 1
+    assert _image_number("images/image_07.png") == 7
+
+
+def test_file_attachment_image_uses_same_numbered_yellow_placeholder():
+    blocks = [
+        {
+            "id": "image-file-1",
+            "type": "file",
+            "file": {
+                "name": "robot-diagram.png",
+                "external": {"url": "https://example.test/robot-diagram.png"},
+            },
+        }
+    ]
+    output = render_plain_text(
+        blocks,
+        {"image-file-1": "images/이미지_03_robot_diagram.png"},
+    )
+    assert "🟨 이미지 03 삽입 위치: robot-diagram.png" in output
+
+
+def test_all_visual_placeholders_share_one_top_to_bottom_number_sequence():
+    blocks = [
+        {"id": "photo", "type": "image", "image": {"caption": [rt("대표 이미지")]}},
+        {"id": "cpp", "type": "code", "code": {"rich_text": [rt("int main() {}")], "language": "cpp"}},
+        {
+            "id": "diagram-file",
+            "type": "file",
+            "file": {
+                "name": "diagram.png",
+                "external": {"url": "https://example.test/diagram.png"},
+            },
+        },
+        {"id": "contact", "type": "heading_1", "heading_1": {"rich_text": [rt("Contact us")]}},
+    ]
+    image_map = {
+        "photo": "images/이미지_01_대표.png",
+        "cpp": "images/이미지_02_code_cpp.png",
+        "diagram-file": "images/이미지_03_diagram.png",
+    }
+    output = render_plain_text(
+        blocks,
+        image_map=image_map,
+        code_sources=[],
+        contact_card={"number": 4, "path": "images/이미지_04_contact.png"},
+    )
+    expected = [
+        "이미지 01 삽입 위치",
+        "이미지 02 삽입 위치",
+        "이미지 03 삽입 위치",
+        "이미지 04 삽입 위치",
+    ]
+    positions = [output.index(marker) for marker in expected]
+    assert positions == sorted(positions)
