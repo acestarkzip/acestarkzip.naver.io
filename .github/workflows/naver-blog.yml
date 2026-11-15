@@ -2,14 +2,22 @@ name: Naver Blog Drafts
 
 on:
   schedule:
-    # KST 07:17 = UTC 22:17 (전날 실행): 어제 작성한 글
-    - cron: "17 22 * * *"
-    # KST 19:17 = UTC 10:17 (당일 실행): 오늘 작성한 글
-    - cron: "17 10 * * *"
+    # 매일 한국시간 19:07: 오늘 날짜의 글 생성/갱신
+    - cron: '7 19 * * *'
+      timezone: 'Asia/Seoul'
+    # 매일 한국시간 07:07: 어제 날짜의 글 생성/갱신
+    - cron: '7 7 * * *'
+      timezone: 'Asia/Seoul'
+    # 매주 일요일 20:17: 최근 14일 내 수정된 페이지 재수집
+    - cron: '17 20 * * 0'
+      timezone: 'Asia/Seoul'
+    # 매월 1일 20:37: 전체 Notion 페이지 재수집
+    - cron: '37 20 1 * *'
+      timezone: 'Asia/Seoul'
   workflow_dispatch:
     inputs:
-      date_scope:
-        description: "조회 범위: Today(오늘), Yesterday(어제), Week(최근 7일, 오늘 포함), Month(이번 달 1일~오늘), ALL(전체)"
+      fetch_mode:
+        description: '조회 범위: Today(오늘), Yesterday(어제), Week(최근 7일, 오늘 포함), Month(이번 달 1일~오늘), ALL(전체)'
         required: true
         type: choice
         options:
@@ -19,11 +27,6 @@ on:
           - Month
           - ALL
         default: Today
-      update_existing:
-        description: "이미 생성된 미발행 초안도 Notion 수정 내용으로 갱신"
-        required: false
-        type: boolean
-        default: false
 
 permissions:
   contents: write
@@ -43,7 +46,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: '3.11'
           cache: pip
 
       - name: Install Korean fonts for code screenshots
@@ -55,34 +58,62 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Resolve date scope
+      # Notion to GitHub workflow와 동일하게 예약/수동 실행 모드를 결정합니다.
+      - name: Resolve fetch mode (KST schedule and manual choice)
+        id: fetch-mode
         shell: bash
         env:
           EVENT_NAME: ${{ github.event_name }}
           SCHEDULE_CRON: ${{ github.event.schedule }}
-          MANUAL_DATE_SCOPE: ${{ inputs.date_scope }}
+          INPUT_FETCH_MODE: ${{ inputs.fetch_mode }}
         run: |
+          set -euo pipefail
+
           if [[ "$EVENT_NAME" == "schedule" ]]; then
-            case "$SCHEDULE_CRON" in
-              "17 22 * * *") SCOPE="Yesterday" ;;
-              "17 10 * * *") SCOPE="Today" ;;
-              *) echo "알 수 없는 schedule cron: $SCHEDULE_CRON"; exit 1 ;;
+            NORMALIZED_CRON="$(echo "${SCHEDULE_CRON:-}" | xargs)"
+            case "$NORMALIZED_CRON" in
+              '7 19 * * *'|'0 19 * * *'|'17 10 * * *') FETCH_MODE="TODAY" ;;
+              '7 7 * * *'|'0 7 * * *'|'5 15 * * *'|'17 22 * * *') FETCH_MODE="YESTERDAY" ;;
+              '17 20 * * 0') FETCH_MODE="EDITED_WEEK" ;;
+              '37 20 1 * *') FETCH_MODE="ALL" ;;
+              *)
+                # cron 분 값이 과거 값으로 전달되더라도 시각으로 예약 의도를 판별합니다.
+                read -r CRON_MINUTE CRON_HOUR CRON_DOM CRON_MONTH CRON_DOW <<< "$NORMALIZED_CRON"
+                if [[ "$CRON_HOUR" == "19" && "$CRON_DOM" == "*" && "$CRON_MONTH" == "*" && "$CRON_DOW" == "*" ]]; then
+                  FETCH_MODE="TODAY"
+                  echo "::warning::이전/변형 cron($NORMALIZED_CRON)을 19시 예약으로 인식했습니다."
+                elif [[ "$CRON_HOUR" == "7" && "$CRON_DOM" == "*" && "$CRON_MONTH" == "*" && "$CRON_DOW" == "*" ]]; then
+                  FETCH_MODE="YESTERDAY"
+                  echo "::warning::이전/변형 cron($NORMALIZED_CRON)을 07시 예약으로 인식했습니다."
+                else
+                  echo "::error::지원하지 않는 예약 cron입니다: $NORMALIZED_CRON"
+                  exit 1
+                fi
+                ;;
             esac
           else
-            SCOPE="${MANUAL_DATE_SCOPE:-Today}"
-            case "$SCOPE" in
-              Today|Yesterday|Week|Month|ALL) ;;
-              *) echo "잘못된 수동 조회 범위: $SCOPE"; exit 1 ;;
+            case "${INPUT_FETCH_MODE,,}" in
+              today) FETCH_MODE="TODAY" ;;
+              yesterday) FETCH_MODE="YESTERDAY" ;;
+              week) FETCH_MODE="WEEK" ;;
+              month) FETCH_MODE="MONTH" ;;
+              all) FETCH_MODE="ALL" ;;
+              *)
+                echo "::error::잘못된 수동 조회 범위입니다: $INPUT_FETCH_MODE"
+                exit 1
+                ;;
             esac
           fi
-          echo "NAVER_DATE_SCOPE=$SCOPE" >> "$GITHUB_ENV"
-          echo "조회 범위: $SCOPE"
 
-      - name: Scan Notion posts and create Naver drafts
+          echo "FETCH_MODE=$FETCH_MODE" >> "$GITHUB_ENV"
+          echo "fetch_mode=$FETCH_MODE" >> "$GITHUB_OUTPUT"
+          echo ">> 선택된 조회 범위: $FETCH_MODE (Asia/Seoul)"
+
+      - name: Scan Notion posts and create/update Naver drafts
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
-          UPDATE_EXISTING_DRAFTS: ${{ inputs.update_existing || 'false' }}
+          FETCH_MODE: ${{ steps.fetch-mode.outputs.fetch_mode }}
           MAX_DOWNLOAD_MB: "50"
         run: python scripts/exporter.py
 
