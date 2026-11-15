@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>[네이버 블로그 연동 테스트 입니다]</title>
+<style>
+body { font-family: Arial, 'Malgun Gothic', sans-serif; line-height: 1.8; max-width: 820px; margin: 32px auto; padding: 0 20px; color: #222; }
+img { max-width: 100%; height: auto; }
+pre { overflow-x: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+code { font-family: Consolas, Monaco, monospace; }
+.code-table { width: 100%; border-collapse: collapse; margin: 16px 0; background: #202124; border: 1px solid #3c4043; }
+.code-table td { padding: 14px 16px; color: #e8eaed; }
+blockquote { border-left: 4px solid #888; padding: 8px 16px; margin-left: 0; background: #f7f7f7; }
+.callout { padding: 12px 16px; background: #f4f7fb; border-radius: 6px; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+figcaption { color: #666; font-size: .9em; }
+.todo { list-style: none; }
+.conversion-warning { color: #b45309; }
+a { overflow-wrap: anywhere; }
+</style>
+</head>
+<body>
+<header><h1>[네이버 블로그 연동 테스트 입니다]</h1><p>메모 | 블로그 연동 작업</p><p class="tags">#자기개발</p></header>
+<main>
+<figure><img src="images/01_media_1.png" alt=""><figcaption></figcaption></figure>
+<aside class="callout"><span>📌</span> <strong>안녕하세요, ‘S급 로봇 연구소’ 입니다.
+오늘의 기술 블로그 주제는 [      ] 입니다</strong></aside>
+<p><strong>해당 주제에 관한 내용으로는,
+
+
+</strong><span style="color:#16803c"><strong>오늘의 핵심 세 가지</strong></span><strong> :
+1. 테스트
+2.
+3. </strong></p>
+<h1>📚 목차</h1>
+<h1>📖 오늘의 진행 내용</h1>
+<h2>1. [ 세부 주제 ]</h2>
+<h3>A. [ 더 깊은 세부 내용]</h3>
+<p>a. [ 더더 깊은 세부 내용]</p>
+<h1>📜 회고 및 다음 과제 (Retropective&amp;Next Steps)</h1>
+<ul><li>테스트 입니다</li></ul>
+<table class="code-table" role="presentation" style="width:100%;border-collapse:collapse;margin:16px 0;background:#202124;border:1px solid #3c4043;"><tbody><tr><td style="padding:14px 16px;font-family:Consolas,Monaco,monospace;font-size:13px;line-height:1.65;color:#e8eaed;white-space:pre-wrap;overflow-wrap:anywhere;"><div style="font-family:Arial,sans-serif;font-size:11px;color:#aab0b6;margin-bottom:8px;">c++</div><pre style="margin:0;padding:0;background:transparent;color:#e8eaed;font-family:Consolas,Monaco,monospace;font-size:13px;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere;"><code>c++ code 작성 테스트 입니다.
+#include &lt;iostream&gt;
+#include &lt;Python.h&gt; // 파이썬 헤더 파일 포함
+
+int main() {
+    // 1. 파이썬 인터프리터 초기화
+    Py_Initialize();
+
+    std::cout &lt;&lt; &quot;=== Python 코드 실행 테스트 ===&quot; &lt;&lt; std::endl;
+
+    // 2. 간단한 파이썬 코드 문자열 실행
+    PyRun_SimpleString(&quot;import sys&quot;);
+    PyRun_SimpleString(&quot;print(&#x27;Hello from Python! Python version:&#x27;, sys.version)&quot;);
+    PyRun_SimpleString(&quot;result = 10 + 20&quot;);
+    PyRun_SimpleString(&quot;print(&#x27;10 + 20 =&#x27;, result)&quot;);
+
+    // 3. 파이썬 인터프리터 종료
+    Py_FinalizeEx();
+
+    std::cout &lt;&lt; &quot;=== 테스트 종료 ===&quot; &lt;&lt; std::endl;
+    return 0;
+}</code></pre></td></tr></tbody></table>
+<table class="code-table" role="presentation" style="width:100%;border-collapse:collapse;margin:16px 0;background:#202124;border:1px solid #3c4043;"><tbody><tr><td style="padding:14px 16px;font-family:Consolas,Monaco,monospace;font-size:13px;line-height:1.65;color:#e8eaed;white-space:pre-wrap;overflow-wrap:anywhere;"><div style="font-family:Arial,sans-serif;font-size:11px;color:#aab0b6;margin-bottom:8px;">python</div><pre style="margin:0;padding:0;background:transparent;color:#e8eaed;font-family:Consolas,Monaco,monospace;font-size:13px;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere;"><code>python code 작성 테스트 입니다.
+import unittest
+from calculator import add, subtract
+
+class TestCalculator(unittest.TestCase):
+
+    def test_add(self):
+        self.assertEqual(add(3, 4), 7)
+        self.assertEqual(add(-1, 1), 0)
+
+    def test_subtract(self):
+        self.assertEqual(subtract(10, 5), 5)
+        self.assertEqual(subtract(5, 10), -5)
+
+if __name__ == &#x27;__main__&#x27;:
+    unittest.main()
+</code></pre></td></tr></tbody></table>
+<h1>👥 참고 문헌 (References)</h1>
+<details><summary>토글 테스트 입니다</summary><details><summary>두 번째 토글 입니다.</summary></details></details>
+<ul><li>bullet test 입니다<ul><li>bullet test 입니다<ul><li>bullet test 입니다</li></ul></li></ul></li></ul>
+<h1>📨 Contact us</h1>
+<hr>
+<p class="attachment"><a href="https://www.youtube.com/@sssrobotics/shorts">bookmark</a></p>
+<blockquote></blockquote>
+<ul><li>Youtube : <a href="https://www.youtube.com/@sssrobotics">https://www.youtube.com/@sssrobotics</a></li><li>Blog : <a href="https://www.sssrobotics.com/">https://www.sssrobotics.com</a></li><li>Email : <a href="mailto:acestark.zip@gmail.com">acestark.zip@gmail.com</a></li></ul>
+<p>#S급로봇연구소 #로봇연구소 #sssrobotics #sss #OpenUSD #NVIDIA #IsaacSim #Omniverse #Robotics #PhysicalAI #로봇시뮬레이션 #robot #simulation #엔비디아 #S급 로봇 연구소</p>
+</main>
+<footer style="margin-top:32px;padding-top:12px;border-top:1px solid #ddd;color:#777;font-size:12px;">
+미리보기 안내: 이미지가 네이버 글쓰기 화면에 자동 업로드되지는 않습니다.
+네이버 에디터에서 [사진] 기능으로 images 폴더의 이미지 파일을 직접 첨부해 주세요.
+</footer>
+</body>
+</html>
