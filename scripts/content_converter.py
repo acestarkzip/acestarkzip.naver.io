@@ -79,6 +79,7 @@ def _text_fields(data: dict) -> tuple[str, str]:
 def _render_list(
     blocks: list[dict], start: int, kind: str,
     image_map: dict[str, str], lines: list[str], depth: int,
+    code_image_dir: Path | None = None,
 ) -> tuple[str, int]:
     tag = "ul" if kind == "bulleted_list_item" else "ol"
     items: list[str] = []
@@ -139,8 +140,6 @@ def _code_font(size=16):
 def render_code_image(code: str, language: str, destination: Path) -> Path:
     """Create a dark syntax-highlighted PNG. Source remains in the TXT export."""
     destination.parent.mkdir(parents=True, exist_ok=True)
-    digest = hashlib.sha1((language + "\\0" + code).encode("utf-8")).hexdigest()[:10]
-    destination = destination.with_name(f"{destination.stem}_{digest}.png")
     if destination.exists(): return destination
     lines = code.expandtabs(4).splitlines() or [""]
     font, label_font = _code_font(16), _code_font(12)
@@ -200,7 +199,9 @@ def render_blocks(
         value, raw = _text_fields(data)
 
         if kind in ("bulleted_list_item", "numbered_list_item"):
-            rendered, index = _render_list(blocks, index, kind, image_map, lines, depth)
+            rendered, index = _render_list(
+                blocks, index, kind, image_map, lines, depth, code_image_dir
+            )
             output.append(rendered)
             continue
         elif kind == "paragraph":
