@@ -40,3 +40,36 @@ def test_docx_converts_urls_to_clickable_hyperlinks(tmp_path):
     assert "https://www.youtube.com/@sssrobotics" in xml
     external_targets = [rel.target_ref for rel in doc.part.rels.values() if rel.is_external]
     assert "mailto:hello@example.com" in external_targets
+
+
+def test_docx_adds_horizontal_dividers_above_and_below_toc_only(tmp_path):
+    text = (
+        "도입부입니다.\n\n"
+        "📚 목차\n"
+        "• 📖 오늘의 진행 내용\n"
+        "  • 1. 세부 주제\n"
+        "• 📜 회고 및 다음 과제\n\n"
+        "📖 오늘의 진행 내용\n"
+        "본문입니다.\n"
+    )
+    destination = write_naver_docx(text, tmp_path / "toc-dividers.docx")
+    doc = Document(destination)
+
+    toc_heading = next(p for p in doc.paragraphs if p.text == "📚 목차")
+    last_toc_item = next(p for p in doc.paragraphs if "📜 회고 및 다음 과제" in p.text)
+    body_heading = next(p for p in doc.paragraphs if p.text == "📖 오늘의 진행 내용")
+
+    toc_xml = toc_heading._p.xml
+    last_toc_xml = last_toc_item._p.xml
+    body_xml = body_heading._p.xml
+
+    assert "<w:top" in toc_xml
+    assert "<w:bottom" in last_toc_xml
+    assert "<w:top" not in body_xml
+    assert "<w:bottom" not in body_xml
+
+
+def test_docx_without_toc_does_not_add_horizontal_dividers(tmp_path):
+    destination = write_naver_docx("제목\n본문입니다.\n", tmp_path / "no-toc.docx")
+    doc = Document(destination)
+    assert all("w:pBdr" not in p._p.xml for p in doc.paragraphs)
