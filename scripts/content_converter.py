@@ -157,10 +157,29 @@ def render_blocks(
             output.append(f'<aside class="callout"><span>{html.escape(icon_text)}</span> {value}</aside>')
             lines.append(f"{icon_text} {raw}")
         elif kind == "code":
+            # Naver Blog may strip <pre>/<code> styling on paste.
+            # Wrap the code in a one-cell table with inline styles for better retention.
             code = plain(data.get("rich_text") or [])
-            language = html.escape(data.get("language") or "plain text", quote=True)
-            output.append(f'<pre data-language="{language}"><code>{html.escape(code)}</code></pre>')
-            lines.extend(["", code, ""])
+            language_raw = data.get("language") or "plain text"
+            language = html.escape(str(language_raw), quote=True)
+            escaped_code = html.escape(code)
+            output.append(
+                '<table class="code-table" role="presentation" '
+                'style="width:100%;border-collapse:collapse;margin:16px 0;'
+                'background:#202124;border:1px solid #3c4043;">'
+                '<tbody><tr><td style="padding:14px 16px;'
+                'font-family:Consolas,Monaco,monospace;font-size:13px;'
+                'line-height:1.65;color:#e8eaed;white-space:pre-wrap;'
+                'overflow-wrap:anywhere;">'
+                f'<div style="font-family:Arial,sans-serif;font-size:11px;'
+                f'color:#aab0b6;margin-bottom:8px;">{language}</div>'
+                f'<pre style="margin:0;padding:0;background:transparent;'
+                f'color:#e8eaed;font-family:Consolas,Monaco,monospace;'
+                f'font-size:13px;line-height:1.65;white-space:pre-wrap;'
+                f'overflow-wrap:anywhere;"><code>{escaped_code}</code></pre>'
+                '</td></tr></tbody></table>'
+            )
+            lines.extend(["", f"```{language_raw}", code, "```", ""])
         elif kind == "divider":
             output.append("<hr>")
             lines.append("──────────")
@@ -232,8 +251,10 @@ def wrap_html(title: str, memo: str, body: str, tags: list[str]) -> str:
 <style>
 body {{ font-family: Arial, 'Malgun Gothic', sans-serif; line-height: 1.8; max-width: 820px; margin: 32px auto; padding: 0 20px; color: #222; }}
 img {{ max-width: 100%; height: auto; }}
-pre {{ overflow-x: auto; white-space: pre-wrap; background: #f3f3f3; padding: 14px; border-radius: 6px; }}
-code {{ font-family: Consolas, monospace; }}
+pre {{ overflow-x: auto; white-space: pre-wrap; overflow-wrap: anywhere; }}
+code {{ font-family: Consolas, Monaco, monospace; }}
+.code-table {{ width: 100%; border-collapse: collapse; margin: 16px 0; background: #202124; border: 1px solid #3c4043; }}
+.code-table td {{ padding: 14px 16px; color: #e8eaed; }}
 blockquote {{ border-left: 4px solid #888; padding: 8px 16px; margin-left: 0; background: #f7f7f7; }}
 .callout {{ padding: 12px 16px; background: #f4f7fb; border-radius: 6px; }}
 .table-wrap {{ overflow-x: auto; }}
@@ -250,6 +271,10 @@ a {{ overflow-wrap: anywhere; }}
 <main>
 {body}
 </main>
+<footer style="margin-top:32px;padding-top:12px;border-top:1px solid #ddd;color:#777;font-size:12px;">
+미리보기 안내: 이미지가 네이버 글쓰기 화면에 자동 업로드되지는 않습니다.
+네이버 에디터에서 [사진] 기능으로 images 폴더의 이미지 파일을 직접 첨부해 주세요.
+</footer>
 </body>
 </html>
 '''
