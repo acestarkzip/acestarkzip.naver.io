@@ -13,6 +13,7 @@ import requests
 
 from notion_reader import query_database, get_blocks, load_tree
 from content_converter import plain, render_blocks, render_plain_text, wrap_html
+from docx_exporter import write_naver_docx
 
 ROOT = Path(__file__).resolve().parents[1]
 DRAFTS = ROOT / "Naver_Drafts"
@@ -91,9 +92,7 @@ def save_media(block: dict, folder: Path, index: int) -> Path | None:
     if extension not in (".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".pdf"):
         extension = mimetypes.guess_extension(media.get("mime_type", "")) or ".bin"
 
-    # Naver Blog's uploader can fail with Korean/special-character filenames.
-    # Keep generated image names ASCII-only and sequential.
-    destination = folder / f"image_{index:02d}{extension}"
+    destination = folder / f"{index:02d}_{safe_name(Path(original_name).stem)}{extension}"
     try:
         with requests.get(url, stream=True, timeout=30) as response:
             response.raise_for_status()
@@ -224,9 +223,17 @@ def main() -> None:
         body_parts = [body_text.strip()]
         if tags:
             body_parts.extend(["", " ".join("#" + tag for tag in tags)])
+        final_body_text = "\n".join(part for part in body_parts if part is not None).strip() + "\n"
         (folder / "02_네이버_본문.txt").write_text(
-            "\n".join(part for part in body_parts if part is not None).strip() + "\n",
+            final_body_text,
             encoding="utf-8",
+        )
+        # TXT remains plain text. This DOCX version highlights only the image
+        # insertion instructions in yellow for easy spotting while editing.
+        write_naver_docx(
+            final_body_text,
+            folder / "02_네이버_본문_서식.docx",
+            headings=headings,
         )
 
         image_list_lines = [
@@ -278,8 +285,9 @@ def main() -> None:
         checklist = [
             "네이버 블로그 발행 전 체크리스트",
             "[ ] 01_네이버_제목.txt의 제목을 네이버 제목란에 입력",
-            "[ ] 02_네이버_본문.txt의 내용을 네이버 본문에 붙여넣기",
-            "[ ] 본문에 표시된 이미지 삽입 위치에 images 폴더의 파일 업로드",
+            "[ ] 02_네이버_본문_서식.docx를 Word에서 열어 이미지 삽입 안내의 노란색 표시를 확인",
+            "[ ] DOCX 본문을 복사해 네이버 본문에 붙여넣기 (TXT는 일반 텍스트 대체본)",
+            "[ ] 노란색으로 표시된 이미지 삽입 위치 문구를 지우고 해당 이미지 업로드",
             "[ ] 코드 이미지가 모두 삽입되었는지 확인",
             "[ ] 링크가 정상적으로 표시되는지 확인",
             "[ ] 해시태그 확인 및 필요 시 네이버 태그 입력란에도 등록",
@@ -293,20 +301,20 @@ def main() -> None:
         usage_guide = [
             "네이버 블로그 원고 사용 방법",
             "",
-            "이 폴더의 TXT 파일이 네이버 블로그에 사용할 기본 원고입니다.",
+            "02_네이버_본문_서식.docx는 이미지 삽입 위치를 노란색으로 표시한 서식 원고입니다.",
+            "02_네이버_본문.txt는 노란색 표시가 없는 일반 텍스트 대체본입니다.",
             "HTML 파일은 미리보기 전용이며, HTML에서 본문을 복사하지 마세요.",
             "",
             "1. GitHub에서 해당 초안 폴더 전체를 다운로드하고 압축을 풉니다.",
             "2. 01_네이버_제목.txt를 열어 제목 한 줄을 복사한 뒤 네이버 제목란에 붙여넣습니다.",
-            "3. 02_네이버_본문.txt는 GitHub 웹 화면에서 복사하지 말고, PC에 다운로드한 뒤 메모장(Windows) 또는 일반 텍스트 편집기에서 엽니다.",
-            "4. 메모장에서 본문을 복사해 네이버 블로그 본문에 붙여넣습니다. TXT에는 글자색/배경색 서식이 들어 있지 않습니다.",
-            "5. 붙여넣은 글에 검은 배경/흰 글씨가 보이면 네이버 편집기에서 본문 전체를 선택하고 글자색은 검정, 글자 배경색은 없음으로 바꿉니다. 새 문단에 붙여넣기 전에도 서식 상태를 확인합니다.",
-            "6. images 폴더에는 Notion 이미지와 코드 이미지가 자동 다운로드되어 있습니다. 이미지를 하나씩 GitHub에서 다운로드할 필요는 없습니다.",
-            "7. 네이버 사진 버튼에서 images 폴더의 사진을 여러 장 선택해 한 번에 첨부할 수 있습니다. 사진 배열은 '개별 사진'을 선택하고, 본문 삽입 위치에 맞게 배치합니다.",
-            "8. 본문에 표시된 [이미지 삽입 위치: images/파일명] 문구를 지우고 해당 사진을 넣습니다. 위치가 다른 이미지는 해당 위치별로 나눠 첨부하는 것이 가장 정확합니다.",
-            "9. 링크와 해시태그를 확인하고 미리보기 후 직접 발행합니다.",
+            "3. 02_네이버_본문_서식.docx를 Word에서 엽니다.",
+            "4. 노란색으로 표시된 [이미지 삽입 위치] 또는 [코드 이미지 삽입 위치] 문구를 확인합니다.",
+            "5. DOCX 본문을 복사해 네이버 블로그 본문 편집기에 붙여넣습니다.",
+            "6. 네이버에 붙여넣은 뒤 노란색 안내 문구를 지우고 해당 이미지 파일을 사진 첨부 기능으로 올립니다.",
+            "7. TXT만 필요하면 02_네이버_본문.txt를 사용하세요. TXT에는 배경색이 저장되지 않습니다.",
+            "8. 링크와 해시태그를 확인하고 미리보기 후 직접 발행합니다.",
             "",
-            "주의: 사진 파일은 GitHub Actions가 images 폴더에 자동 저장하지만, 네이버 게시글에 실제로 올리는 단계는 네이버 사진 첨부 기능을 사용해야 합니다.",
+            "주의: 로컬 이미지 파일은 텍스트 붙여넣기만으로 네이버에 업로드되지 않습니다. images 폴더의 파일을 사진 첨부 기능으로 직접 등록해야 합니다.",
             "06_미리보기.html은 참고용 화면이며, 복사·붙여넣기 원고로 사용하지 않습니다.",
         ]
         (folder / "00_네이버_블로그_사용방법.txt").write_text(
