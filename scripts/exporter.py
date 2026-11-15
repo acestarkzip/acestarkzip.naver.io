@@ -257,11 +257,8 @@ def main() -> None:
         print(f"[DRAFT] {folder_name}")
 
     tracker["last_scan"] = datetime.now(timezone.utc).isoformat()
-    tracker["scan_window"] = {
-        "start": start_date.isoformat(),
-        "end": end_date.isoformat(),
-        "timezone": "Asia/Seoul",
-    }
+    # Full-database scan: no date-window metadata is applicable.
+    tracker.pop("scan_window", None)
     TRACKER.write_text(json.dumps(tracker, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"[DONE] 신규/갱신 초안 {created}개, 건너뜀 {skipped}개")
 
