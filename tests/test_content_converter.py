@@ -311,3 +311,15 @@ def test_plain_text_generates_simple_toc_and_preserves_nested_list_and_toggle():
     toc = output.split("📚 목차", 1)[1].split("오늘의 진행 내용", 1)[0]
     assert "Contact us" not in toc
     assert "▸ 참고 자료" in output and "내부 설명" in output
+
+def test_code_image_uses_white_background_and_black_text(tmp_path):
+    from PIL import Image
+    from content_converter import render_code_image, _token_color
+    from pygments.token import Token
+
+    destination = render_code_image("int value = 1;\n// 한글 주석", "cpp", tmp_path / "light-code.png")
+    image = Image.open(destination).convert("RGB")
+
+    assert image.getpixel((image.width - 30, image.height - 30)) == (255, 255, 255)
+    assert _token_color(Token.Keyword) == "#111111"
+

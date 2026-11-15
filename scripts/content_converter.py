@@ -200,10 +200,8 @@ def _code_font(size: int = 16, *, bold: bool = False) -> ImageFont.FreeTypeFont 
 
 
 def _token_color(token_type: Any) -> str:
-    for token, color in _CODE_COLORS.items():
-        if token_type in token:
-            return color
-    return "#e6e6e6"
+    """Use a consistent black code color for clean Naver Blog insertion."""
+    return "#111111"
 
 
 def code_image_filename(code: str, language: str) -> str:
@@ -265,20 +263,26 @@ def render_code_image(code: str, language: str, destination: Path) -> Path:
         wrapped_rows = wrapped_rows[:max_rows - 1]
         wrapped_rows.append([("… 코드가 길어 이미지에서 일부 생략되었습니다. TXT 원고를 확인하세요.", Token.Text)])
 
-    height = max(145, header + pad * 2 + len(wrapped_rows) * line_height)
-    image = Image.new("RGB", (width, height), "#171a21")
+    height = max(120, pad * 2 + len(wrapped_rows) * line_height + 24)
+    # A white canvas with black text blends into Naver Blog's normal article
+    # surface and avoids the dark code-panel look in pasted posts.
+    image = Image.new("RGB", (width, height), "#ffffff")
     draw = ImageDraw.Draw(image)
-    draw.rounded_rectangle((5, 5, width - 5, height - 5), radius=14, fill="#171a21", outline="#303746", width=2)
-    draw.rounded_rectangle((5, 5, width - 5, header + 5), radius=14, fill="#222733")
-    draw.rectangle((5, header - 8, width - 5, header + 5), fill="#222733")
-    draw.text((pad, 17), (language or "text").upper(), font=label_font, fill="#d4dbea")
+    draw.rounded_rectangle(
+        (5, 5, width - 5, height - 5),
+        radius=8,
+        fill="#ffffff",
+        outline="#e5e7eb",
+        width=2,
+    )
+    draw.text((pad, 14), (language or "text").upper(), font=label_font, fill="#111111")
+    draw.line((pad, 42, width - pad, 42), fill="#eeeeee", width=1)
 
-    y = header + pad
+    y = 58
     for row in wrapped_rows:
         x = pad
         for char, token_type in row:
-            color = "#f0b36a" if truncated and char == "…" else _token_color(token_type)
-            draw.text((x, y), char, font=font, fill=color)
+            draw.text((x, y), char, font=font, fill="#111111")
             x += draw.textlength(char, font=font)
         y += line_height
 
