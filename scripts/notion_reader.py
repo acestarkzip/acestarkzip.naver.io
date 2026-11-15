@@ -1,42 +1,128 @@
-import os, time, requests
-API="https://api.notion.com/v1"
-TOKEN=os.getenv("NOTION_TOKEN","").strip()
-DB=os.getenv("NOTION_DATABASE_ID","").strip()
-HEADERS={"Authorization":f"Bearer {TOKEN}","Content-Type":"application/json","Notion-Version":"2022-06-28"}
-_last=0.0
-def request(method,path,**kwargs):
-    global _last
-    if not TOKEN: raise RuntimeError("NOTION_TOKEN이 설정되지 않았습니다.")
+from __future__ import annotations
+
+import os
+import time
+import requests
+from typing import Any
+
+API = "https://api.notion.com/v1"
+TOKEN = os.getenv("NOTION_TOKEN", "").strip()
+DB = os.getenv("NOTION_DATABASE_ID", "").strip()
+HEADERS = {
+    "Authorization": f"Bearer {TOKEN}",
+    "Content-Type": "application/json",
+    "Notion-Version": os.getenv("NOTION_VERSION", "2022-06-28"),
+}
+_last_request = 0.0
+
+
+def request(method: str, path: str, **kwargs: Any) -> dict:
+    """Notion API request with light rate limiting and retry handling."""
+    global _last_request
+
+    if not TOKEN:
+        raise RuntimeError("NOTION_TOKEN이 설정되지 않았습니다.")
+
     for attempt in range(5):
-        delay=.35-(time.monotonic()-_last)
-        if delay>0: time.sleep(delay)
-        r=requests.request(method,API+path,headers=HEADERS,timeout=30,**kwargs); _last=time.monotonic()
-        if r.status_code==429 or r.status_code>=500:
-            if attempt==4: r.raise_for_status()
-            time.sleep(float(r.headers.get("Retry-After",min(2**attempt,15)))); continue
-        r.raise_for_status(); return r.json()
-    raise RuntimeError("Notion API 요청 실패")
-def query_database():
-    if not DB: raise RuntimeError("NOTION_DATABASE_ID가 설정되지 않았습니다.")
-    out=[]; cursor=None
+        wait = 0.35 - (time.monotonic() - _last_request)
+        if wait > 0:
+            time.sleep(wait)
+
+        response = requests.request(
+            method,
+            API + path,
+            headers=HEADERS,
+            timeout=40,
+            **kwargs,
+        )
+        _last_request = time.monotonic()
+
+        if response.status_code == 429 or response.status_code >= 500:
+            if attempt == 4:
+                response.raise_for_status()
+            retry_after = response.headers.get("Retry-After")
+            time.sleep(float(retry_after) if retry_after else min(2 ** attempt, 15))
+            continue
+
+        if not response.ok:
+            try:
+                detail = response.json()
+            except ValueError:
+                detail = response.text[:1000]
+            raise RuntimeError(
+                f"Notion API 오류 ({response.status_code}): {detail}"
+            )
+
+        return response.json()
+
+    raise RuntimeError("Notion API 요청 재시도 횟수를 초과했습니다.")
+
+
+def query_database() -> list[dict]:
+    """Return all database pages, following Notion pagination."""
+    if not DB:
+        raise RuntimeError("NOTION_DATABASE_ID가 설정되지 않았습니다.")
+
+    results: list[dict] = []
+    cursor = None
+
     while True:
-        payload={"page_size":100}
-        if cursor: payload["start_cursor"]=cursor
-        data=request("POST",f"/databases/{DB}/query",json=payload); out.extend(data.get("results",[]))
-        if not data.get("has_more") or not data.get("next_cursor"): break
-        cursor=data["next_cursor"]
-    return out
-def get_blocks(block_id):
-    out=[]; cursor=None
+        payload: dict[str, Any] = {"page_size": 100}
+        if cursor:
+            payload["start_cursor"] = cursor
+
+        data = request("POST", f"/databases/{DB}/query", json=payload)
+        results.extend(data.get("results", []))
+
+        if not data.get("has_more") or not data.get("next_cursor"):
+            break
+        cursor = data["next_cursor"]
+
+    return results
+
+
+def get_blocks(block_id: str) -> list[dict]:
+    """Return all children of a block/page, following pagination."""
+    results: list[dict] = []
+    cursor = None
+
     while True:
-        params={"page_size":100}
-        if cursor: params["start_cursor"]=cursor
-        data=request("GET",f"/blocks/{block_id}/children",params=params); out.extend(data.get("results",[]))
-        if not data.get("has_more") or not data.get("next_cursor"): break
-        cursor=data["next_cursor"]
-    return out
-def load_tree(blocks,depth=0):
-    if depth>=20: return blocks
-    for b in blocks:
-        b["_children"]=load_tree(get_blocks(b["id"]),depth+1) if b.get("has_children") else []
+        params: dict[str, Any] = {"page_size": 100}
+        if cursor:
+            params["start_cursor"] = cursor
+
+        data = request("GET", f"/blocks/{block_id}/children", params=params)
+        results.extend(data.get("results", []))
+
+        if not data.get("has_more") or not data.get("next_cursor"):
+            break
+        cursor = data["next_cursor"]
+
+    return results
+
+
+def load_tree(blocks: list[dict], depth: int = 0, max_depth: int = 20) -> list[dict]:
+    """
+    Recursively attach child blocks as `_children`.
+    The depth limit prevents runaway recursion in deeply nested pages.
+    """
+    if depth >= max_depth:
+        for block in blocks:
+            block["_children"] = []
+        return blocks
+
+    for block in blocks:
+        if block.get("has_children"):
+            try:
+                children = get_blocks(block["id"])
+                block["_children"] = load_tree(children, depth + 1, max_depth)
+            except Exception as exc:
+                block["_children"] = []
+                print(
+                    f"[WARN] 하위 블록을 읽지 못했습니다 "
+                    f"({block.get('type')} / {block.get('id')}): {exc}"
+                )
+        else:
+            block["_children"] = []
+
     return blocks
