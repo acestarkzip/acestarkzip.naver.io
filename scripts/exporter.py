@@ -162,13 +162,14 @@ def main() -> None:
             skipped += 1
             continue
 
-        if previous and (
-            not UPDATE_EXISTING
-            or previous.get("last_edited_time") == last_edited
-        ):
+        if previous and not UPDATE_EXISTING:
             print(f"[SKIP] 이미 처리한 페이지: {title_of(page)}")
             skipped += 1
             continue
+
+        # When update_existing is enabled, regenerate every un-published draft
+        # in the scan window, even if Notion's last_edited_time is unchanged.
+        # This also supports re-rendering after converter/template improvements.
 
         title = title_of(page)
         memo = memo_of(page)
