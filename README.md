@@ -85,3 +85,11 @@ Notion 데이터베이스는 해당 Integration과 공유되어 있어야 합니
 ## Public 저장소 주의
 
 이 저장소가 Public이면 `Naver_Drafts/`에 커밋된 원고, 이미지, `metadata.json`도 공개됩니다. 공개할 콘텐츠만 Notion에 작성하거나 저장소 공개 범위를 조정하세요. API 토큰과 비밀번호는 GitHub Secrets에만 보관하고 저장소 파일에 넣지 마세요.
+
+
+```json
+{
+  "version": 1,
+  "pages": {}
+}
+```
