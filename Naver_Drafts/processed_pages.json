@@ -63,13 +63,22 @@
       "status": "draft",
       "title": "EP.02 - OpenUSD의 Stage란 무엇일까요? (What Is a Stage?)",
       "date": "2026-11-22"
+    },
+    "420d9e12-9df7-80a9-bd2d-d0d943ef5000": {
+      "folder": "2026-11-21_EP.01_-_왜_OpenUSD를_사용해야_할까요_NVIDIA_Omniverse와_3D_시뮬레이션의_핵심_기술",
+      "last_edited_time": "2026-11-22T04:05:00.000Z",
+      "status": "draft",
+      "title": "EP.01 - 왜 OpenUSD를 사용해야 할까요? NVIDIA Omniverse와 3D 시뮬레이션의 핵심 기술",
+      "date": "2026-11-21"
     }
   },
-  "last_scan": "2026-11-22T04:07:46.164292+00:00",
+  "last_scan": "2026-11-22T04:25:42.934463+00:00",
   "scan_window": {
-    "scope": "Today",
-    "start": "2026-11-22",
+    "scope": "Week",
+    "start": "2026-11-16",
     "end": "2026-11-22",
+    "last_edited_after": null,
+    "lookback_days": null,
     "timezone": "Asia/Seoul"
   }
 }
