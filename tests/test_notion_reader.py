@@ -29,8 +29,10 @@ def test_query_database_range_uses_inclusive_bounds(monkeypatch):
     calls = _capture_query(monkeypatch)
     notion_reader.query_database(date_property="날짜", start_date="2026-11-09", end_date="2026-11-15")
     assert calls[0][2]["filter"] == {
-        "property": "날짜",
-        "date": {"on_or_after": "2026-11-09", "on_or_before": "2026-11-15"},
+        "and": [
+            {"property": "날짜", "date": {"on_or_after": "2026-11-09"}},
+            {"property": "날짜", "date": {"on_or_before": "2026-11-15"}},
+        ]
     }
 
 
@@ -69,3 +71,30 @@ def test_query_database_rejects_combining_edit_time_and_date_filters(monkeypatch
             start_date="2026-11-01",
             last_edited_after="2026-11-08T00:00:00Z",
         )
+
+
+def test_query_database_single_range_boundary_uses_single_date_comparator(monkeypatch):
+    calls = _capture_query(monkeypatch)
+    notion_reader.query_database(date_property="날짜", start_date="2026-11-09")
+    assert calls[0][2]["filter"] == {
+        "property": "날짜",
+        "date": {"on_or_after": "2026-11-09"},
+    }
+
+
+def test_query_database_week_window_uses_valid_notion_and_filter(monkeypatch):
+    calls = _capture_query(monkeypatch)
+    notion_reader.query_database(
+        date_property="날짜",
+        start_date="2026-11-16",
+        end_date="2026-11-22",
+    )
+    actual_filter = calls[0][2]["filter"]
+    assert set(actual_filter) == {"and"}
+    assert actual_filter["and"] == [
+        {"property": "날짜", "date": {"on_or_after": "2026-11-16"}},
+        {"property": "날짜", "date": {"on_or_before": "2026-11-22"}},
+    ]
+    # Every date filter has exactly one comparison operator.
+    for condition in actual_filter["and"]:
+        assert len(condition["date"]) == 1

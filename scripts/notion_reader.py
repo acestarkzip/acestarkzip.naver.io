@@ -84,27 +84,40 @@ def query_database(
     if last_edited_after is not None and has_date_filter:
         raise ValueError("last_edited_after와 게시일 날짜 필터는 함께 사용할 수 없습니다.")
 
-    date_filter: dict[str, str] = {}
+    date_filters: list[dict[str, Any]] = []
     if on_date is not None:
-        date_filter["equals"] = on_date
+        date_filters.append({
+            "property": date_property,
+            "date": {"equals": on_date},
+        })
     elif start_date is not None and end_date is not None and start_date == end_date:
-        date_filter["equals"] = start_date
+        date_filters.append({
+            "property": date_property,
+            "date": {"equals": start_date},
+        })
     else:
+        # Notion's date filter accepts only one comparator per date object.
+        # An inclusive range must be expressed as two separate filters in AND.
         if start_date is not None:
-            date_filter["on_or_after"] = start_date
+            date_filters.append({
+                "property": date_property,
+                "date": {"on_or_after": start_date},
+            })
         if end_date is not None:
-            date_filter["on_or_before"] = end_date
+            date_filters.append({
+                "property": date_property,
+                "date": {"on_or_before": end_date},
+            })
 
     results: list[dict] = []
     cursor = None
 
     while True:
         payload: dict[str, Any] = {"page_size": 100}
-        if date_filter:
-            payload["filter"] = {
-                "property": date_property,
-                "date": date_filter,
-            }
+        if len(date_filters) == 1:
+            payload["filter"] = date_filters[0]
+        elif len(date_filters) > 1:
+            payload["filter"] = {"and": date_filters}
         elif last_edited_after is not None:
             # Notion supports a page-level timestamp filter without adding a
             # dedicated "Last edited time" property to the database.
