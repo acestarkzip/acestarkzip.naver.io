@@ -1,0 +1,461 @@
+코드 원문 백업 (필요한 경우에만 사용)
+
+[1] PLAIN TEXT 코드
+이미지 파일: images/이미지_01_code_plain_text_4e187248c6.png
+
+import numpy as np
+
+# 입력 데이터
+x = np.array([2, 3])
+
+# 가중치
+w = np.array([0.5, 0.8])
+
+# 편향
+b = 0.2
+
+# 가중합 계산
+z = np.dot(x, w) + b
+
+print("가중합:", z)
+
+────────────────────────
+
+[2] PLAIN TEXT 코드
+이미지 파일: images/이미지_02_code_plain_text_48bf67ffb0.png
+
+가중합: 3.6
+
+────────────────────────
+
+[3] PLAIN TEXT 코드
+이미지 파일: images/이미지_03_code_plain_text_edd8a0412c.png
+
+def step_function(x):
+    return 1 if x >= 0 else 0
+
+print(step_function(3))
+print(step_function(-2))
+
+────────────────────────
+
+[4] PLAIN TEXT 코드
+이미지 파일: images/이미지_04_code_plain_text_194f8c1ea2.png
+
+1
+0
+
+────────────────────────
+
+[5] PLAIN TEXT 코드
+이미지 파일: images/이미지_05_code_plain_text_08d70f20ff.png
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+x = np.linspace(-5, 5, 100)
+
+# Sigmoid
+sigmoid = 1 / (1 + np.exp(-x))
+
+# ReLU
+relu = np.maximum(0, x)
+
+plt.plot(x, sigmoid, label="Sigmoid")
+plt.plot(x, relu, label="ReLU")
+
+plt.legend()
+plt.grid()
+plt.show()
+
+────────────────────────
+
+[6] PLAIN TEXT 코드
+이미지 파일: images/이미지_06_code_plain_text_f6acb1b51f.png
+
+import torch
+import torch.nn as nn
+
+class MLP(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+
+        self.network = nn.Sequential(
+            nn.Linear(2, 4),
+            nn.ReLU(),
+            nn.Linear(4, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        return self.network(x)
+
+model = MLP()
+
+print(model)
+
+────────────────────────
+
+[7] PLAIN TEXT 코드
+이미지 파일: images/이미지_07_code_plain_text_031ba1ca63.png
+
+1. Input Data
+      ↓
+2. Forward Propagation
+      ↓
+3. Prediction
+      ↓
+4. Loss Calculation
+      ↓
+5. Backpropagation
+      ↓
+6. Gradient Calculation
+      ↓
+7. Optimizer
+      ↓
+8. Weight Update
+      ↓
+9. Repeat (Training)
+
+────────────────────────
+
+[8] PLAIN TEXT 코드
+이미지 파일: images/이미지_08_code_plain_text_814bc361f2.png
+
+import torch
+
+# Tensor 생성
+a = torch.tensor([1, 2, 3])
+b = torch.tensor([4, 5, 6])
+
+# 덧셈
+print(a + b)
+
+# 곱셈
+print(a * b)
+
+# 행렬 형태
+matrix = torch.tensor([
+    [1, 2],
+    [3, 4]
+])
+
+print(matrix)
+print(matrix.shape)
+
+────────────────────────
+
+[9] PLAIN TEXT 코드
+이미지 파일: images/이미지_09_code_plain_text_596b4daed6.png
+
+import torch
+
+# CUDA 사용 가능 여부
+print(torch.cuda.is_available())
+
+# GPU 장치 확인
+if torch.cuda.is_available():
+
+    device = torch.device("cuda:0")
+    print(torch.cuda.get_device_name(0))
+
+else:
+
+    device = torch.device("cpu")
+
+# Tensor를 GPU 또는 CPU로 이동
+x = torch.tensor([1, 2, 3])
+x = x.to(device)
+
+print("Device:", x.device)
+
+────────────────────────
+
+[10] PLAIN TEXT 코드
+이미지 파일: images/이미지_10_code_plain_text_66c33d7ca4.png
+
+import torch
+
+# 기울기 계산을 추적할 Tensor
+x = torch.tensor(2.0, requires_grad=True)
+
+# 연산
+y = x ** 2 + 3 * x + 1
+
+# 역전파
+y.backward()
+
+# 기울기 출력
+print("y:", y.item())
+print("Gradient:", x.grad.item())
+
+────────────────────────
+
+[11] PLAIN TEXT 코드
+이미지 파일: images/이미지_11_code_plain_text_fa7acf7dcf.png
+
+y: 11.0
+Gradient: 7.0
+
+────────────────────────
+
+[12] PLAIN TEXT 코드
+이미지 파일: images/이미지_12_code_plain_text_0a9b6a42ef.png
+
+optimizer.zero_grad()
+loss.backward()
+optimizer.step()
+
+────────────────────────
+
+[13] PLAIN TEXT 코드
+이미지 파일: images/이미지_13_code_plain_text_5cb9bc959d.png
+
+1. Tensor 생성
+      ↓
+2. Model 정의
+      ↓
+3. Forward Propagation
+      ↓
+4. Loss 계산
+      ↓
+5. Gradient 초기화
+      ↓
+6. Backpropagation
+      ↓
+7. Optimizer로 가중치 업데이트
+      ↓
+8. 반복 학습
+
+────────────────────────
+
+[14] PLAIN TEXT 코드
+이미지 파일: images/이미지_01_code_plain_text_4e187248c6.png
+
+import numpy as np
+
+# 입력 데이터
+x = np.array([2, 3])
+
+# 가중치
+w = np.array([0.5, 0.8])
+
+# 편향
+b = 0.2
+
+# 가중합 계산
+z = np.dot(x, w) + b
+
+print("가중합:", z)
+
+────────────────────────
+
+[15] PLAIN TEXT 코드
+이미지 파일: images/이미지_02_code_plain_text_48bf67ffb0.png
+
+가중합: 3.6
+
+────────────────────────
+
+[16] PLAIN TEXT 코드
+이미지 파일: images/이미지_03_code_plain_text_edd8a0412c.png
+
+def step_function(x):
+    return 1 if x >= 0 else 0
+
+print(step_function(3))
+print(step_function(-2))
+
+────────────────────────
+
+[17] PLAIN TEXT 코드
+이미지 파일: images/이미지_04_code_plain_text_194f8c1ea2.png
+
+1
+0
+
+────────────────────────
+
+[18] PLAIN TEXT 코드
+이미지 파일: images/이미지_05_code_plain_text_08d70f20ff.png
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+x = np.linspace(-5, 5, 100)
+
+# Sigmoid
+sigmoid = 1 / (1 + np.exp(-x))
+
+# ReLU
+relu = np.maximum(0, x)
+
+plt.plot(x, sigmoid, label="Sigmoid")
+plt.plot(x, relu, label="ReLU")
+
+plt.legend()
+plt.grid()
+plt.show()
+
+────────────────────────
+
+[19] PLAIN TEXT 코드
+이미지 파일: images/이미지_06_code_plain_text_f6acb1b51f.png
+
+import torch
+import torch.nn as nn
+
+class MLP(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+
+        self.network = nn.Sequential(
+            nn.Linear(2, 4),
+            nn.ReLU(),
+            nn.Linear(4, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        return self.network(x)
+
+model = MLP()
+
+print(model)
+
+────────────────────────
+
+[20] PLAIN TEXT 코드
+이미지 파일: images/이미지_07_code_plain_text_031ba1ca63.png
+
+1. Input Data
+      ↓
+2. Forward Propagation
+      ↓
+3. Prediction
+      ↓
+4. Loss Calculation
+      ↓
+5. Backpropagation
+      ↓
+6. Gradient Calculation
+      ↓
+7. Optimizer
+      ↓
+8. Weight Update
+      ↓
+9. Repeat (Training)
+
+────────────────────────
+
+[21] PLAIN TEXT 코드
+이미지 파일: images/이미지_08_code_plain_text_814bc361f2.png
+
+import torch
+
+# Tensor 생성
+a = torch.tensor([1, 2, 3])
+b = torch.tensor([4, 5, 6])
+
+# 덧셈
+print(a + b)
+
+# 곱셈
+print(a * b)
+
+# 행렬 형태
+matrix = torch.tensor([
+    [1, 2],
+    [3, 4]
+])
+
+print(matrix)
+print(matrix.shape)
+
+────────────────────────
+
+[22] PLAIN TEXT 코드
+이미지 파일: images/이미지_09_code_plain_text_596b4daed6.png
+
+import torch
+
+# CUDA 사용 가능 여부
+print(torch.cuda.is_available())
+
+# GPU 장치 확인
+if torch.cuda.is_available():
+
+    device = torch.device("cuda:0")
+    print(torch.cuda.get_device_name(0))
+
+else:
+
+    device = torch.device("cpu")
+
+# Tensor를 GPU 또는 CPU로 이동
+x = torch.tensor([1, 2, 3])
+x = x.to(device)
+
+print("Device:", x.device)
+
+────────────────────────
+
+[23] PLAIN TEXT 코드
+이미지 파일: images/이미지_10_code_plain_text_66c33d7ca4.png
+
+import torch
+
+# 기울기 계산을 추적할 Tensor
+x = torch.tensor(2.0, requires_grad=True)
+
+# 연산
+y = x ** 2 + 3 * x + 1
+
+# 역전파
+y.backward()
+
+# 기울기 출력
+print("y:", y.item())
+print("Gradient:", x.grad.item())
+
+────────────────────────
+
+[24] PLAIN TEXT 코드
+이미지 파일: images/이미지_11_code_plain_text_fa7acf7dcf.png
+
+y: 11.0
+Gradient: 7.0
+
+────────────────────────
+
+[25] PLAIN TEXT 코드
+이미지 파일: images/이미지_12_code_plain_text_0a9b6a42ef.png
+
+optimizer.zero_grad()
+loss.backward()
+optimizer.step()
+
+────────────────────────
+
+[26] PLAIN TEXT 코드
+이미지 파일: images/이미지_13_code_plain_text_5cb9bc959d.png
+
+1. Tensor 생성
+      ↓
+2. Model 정의
+      ↓
+3. Forward Propagation
+      ↓
+4. Loss 계산
+      ↓
+5. Gradient 초기화
+      ↓
+6. Backpropagation
+      ↓
+7. Optimizer로 가중치 업데이트
+      ↓
+8. 반복 학습
+
+────────────────────────

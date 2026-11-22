@@ -1,0 +1,207 @@
+코드 원문 백업 (필요한 경우에만 사용)
+
+[1] PLAIN TEXT 코드
+이미지 파일: images/이미지_01_code_plain_text_913fb532a0.png
+
+from sklearn.linear_model import LogisticRegression
+
+model = LogisticRegression()
+model.fit(X_train, y_train)
+
+# 클래스 예측
+y_pred = model.predict(X_test)
+
+# 클래스별 확률 예측
+y_proba = model.predict_proba(X_test)
+
+────────────────────────
+
+[2] PLAIN TEXT 코드
+이미지 파일: images/이미지_02_code_plain_text_1f4202596a.png
+
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    confusion_matrix,
+    classification_report
+)
+
+print("Accuracy:", accuracy_score(y_test, y_pred))
+print("Precision:", precision_score(y_test, y_pred))
+print("Recall:", recall_score(y_test, y_pred))
+print("F1-score:", f1_score(y_test, y_pred))
+
+print(confusion_matrix(y_test, y_pred))
+print(classification_report(y_test, y_pred))
+
+────────────────────────
+
+[3] PLAIN TEXT 코드
+이미지 파일: images/이미지_03_code_plain_text_f80f8cec07.png
+
+from sklearn.neighbors import KNeighborsClassifier
+
+model = KNeighborsClassifier(n_neighbors=5)
+model.fit(X_train, y_train)
+
+y_pred = model.predict(X_test)
+
+────────────────────────
+
+[4] PLAIN TEXT 코드
+이미지 파일: images/이미지_04_code_plain_text_fb30625060.png
+
+from sklearn.preprocessing import StandardScaler
+
+scaler = StandardScaler()
+
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+────────────────────────
+
+[5] PLAIN TEXT 코드
+이미지 파일: images/이미지_05_code_plain_text_5c7fec56da.png
+
+from sklearn.preprocessing import MinMaxScaler
+
+scaler = MinMaxScaler()
+
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+────────────────────────
+
+[6] PLAIN TEXT 코드
+이미지 파일: images/이미지_06_code_plain_text_808522b433.png
+
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import accuracy_score, classification_report
+
+X = df.drop(columns=['target'])
+y = df['target']
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y
+)
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+model = KNeighborsClassifier(n_neighbors=5)
+model.fit(X_train_scaled, y_train)
+
+y_pred = model.predict(X_test_scaled)
+
+print("Accuracy:", accuracy_score(y_test, y_pred))
+print(classification_report(y_test, y_pred))
+
+────────────────────────
+
+[7] PLAIN TEXT 코드
+이미지 파일: images/이미지_01_code_plain_text_913fb532a0.png
+
+from sklearn.linear_model import LogisticRegression
+
+model = LogisticRegression()
+model.fit(X_train, y_train)
+
+# 클래스 예측
+y_pred = model.predict(X_test)
+
+# 클래스별 확률 예측
+y_proba = model.predict_proba(X_test)
+
+────────────────────────
+
+[8] PLAIN TEXT 코드
+이미지 파일: images/이미지_02_code_plain_text_1f4202596a.png
+
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    confusion_matrix,
+    classification_report
+)
+
+print("Accuracy:", accuracy_score(y_test, y_pred))
+print("Precision:", precision_score(y_test, y_pred))
+print("Recall:", recall_score(y_test, y_pred))
+print("F1-score:", f1_score(y_test, y_pred))
+
+print(confusion_matrix(y_test, y_pred))
+print(classification_report(y_test, y_pred))
+
+────────────────────────
+
+[9] PLAIN TEXT 코드
+이미지 파일: images/이미지_03_code_plain_text_f80f8cec07.png
+
+from sklearn.neighbors import KNeighborsClassifier
+
+model = KNeighborsClassifier(n_neighbors=5)
+model.fit(X_train, y_train)
+
+y_pred = model.predict(X_test)
+
+────────────────────────
+
+[10] PLAIN TEXT 코드
+이미지 파일: images/이미지_04_code_plain_text_fb30625060.png
+
+from sklearn.preprocessing import StandardScaler
+
+scaler = StandardScaler()
+
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+────────────────────────
+
+[11] PLAIN TEXT 코드
+이미지 파일: images/이미지_05_code_plain_text_5c7fec56da.png
+
+from sklearn.preprocessing import MinMaxScaler
+
+scaler = MinMaxScaler()
+
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+────────────────────────
+
+[12] PLAIN TEXT 코드
+이미지 파일: images/이미지_06_code_plain_text_808522b433.png
+
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import accuracy_score, classification_report
+
+X = df.drop(columns=['target'])
+y = df['target']
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y
+)
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+model = KNeighborsClassifier(n_neighbors=5)
+model.fit(X_train_scaled, y_train)
+
+y_pred = model.predict(X_test_scaled)
+
+print("Accuracy:", accuracy_score(y_test, y_pred))
+print(classification_report(y_test, y_pred))
+
+────────────────────────

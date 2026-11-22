@@ -1,0 +1,105 @@
+코드 원문 백업 (필요한 경우에만 사용)
+
+[1] PLAIN TEXT 코드
+이미지 파일: images/이미지_01_code_plain_text_b139a8a77b.png
+
+python --version
+python main.py
+
+────────────────────────
+
+[2] PLAIN TEXT 코드
+이미지 파일: images/이미지_02_code_plain_text_ada02398c0.png
+
+name = input("이름을 입력하세요: ")
+age = int(input("나이를 입력하세요: "))
+
+print(name, age)
+print(type(age))
+
+────────────────────────
+
+[3] PLAIN TEXT 코드
+이미지 파일: images/이미지_03_code_plain_text_cc0b47c7f1.png
+
+score = 85
+
+if score >= 90:
+    print("A")
+elif score >= 80:
+    print("B")
+else:
+    print("C")
+
+────────────────────────
+
+[4] PLAIN TEXT 코드
+이미지 파일: images/이미지_04_code_plain_text_e003a42afe.png
+
+for i in range(3):
+    print(i)  # 0, 1, 2
+
+────────────────────────
+
+[5] PLAIN TEXT 코드
+이미지 파일: images/이미지_05_code_plain_text_2b92c69959.png
+
+count = 0
+
+while count < 3:
+    print(count)
+    count += 1
+
+────────────────────────
+
+[6] PLAIN TEXT 코드
+이미지 파일: images/이미지_01_code_plain_text_b139a8a77b.png
+
+python --version
+python main.py
+
+────────────────────────
+
+[7] PLAIN TEXT 코드
+이미지 파일: images/이미지_02_code_plain_text_ada02398c0.png
+
+name = input("이름을 입력하세요: ")
+age = int(input("나이를 입력하세요: "))
+
+print(name, age)
+print(type(age))
+
+────────────────────────
+
+[8] PLAIN TEXT 코드
+이미지 파일: images/이미지_03_code_plain_text_cc0b47c7f1.png
+
+score = 85
+
+if score >= 90:
+    print("A")
+elif score >= 80:
+    print("B")
+else:
+    print("C")
+
+────────────────────────
+
+[9] PLAIN TEXT 코드
+이미지 파일: images/이미지_04_code_plain_text_e003a42afe.png
+
+for i in range(3):
+    print(i)  # 0, 1, 2
+
+────────────────────────
+
+[10] PLAIN TEXT 코드
+이미지 파일: images/이미지_05_code_plain_text_2b92c69959.png
+
+count = 0
+
+while count < 3:
+    print(count)
+    count += 1
+
+────────────────────────

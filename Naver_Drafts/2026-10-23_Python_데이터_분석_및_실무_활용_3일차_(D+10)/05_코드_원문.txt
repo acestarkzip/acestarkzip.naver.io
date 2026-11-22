@@ -1,0 +1,109 @@
+코드 원문 백업 (필요한 경우에만 사용)
+
+[1] PLAIN TEXT 코드
+이미지 파일: images/이미지_01_code_plain_text_d72b9a0b13.png
+
+import matplotlib.pyplot as plt
+
+plt.plot([1, 2, 3], [10, 20, 15])  # 선 그래프
+plt.show()
+
+────────────────────────
+
+[2] PLAIN TEXT 코드
+이미지 파일: images/이미지_02_code_plain_text_2e6f738028.png
+
+plt.hist(df["age"], bins=10)  # 히스토그램
+plt.show()
+
+────────────────────────
+
+[3] PLAIN TEXT 코드
+이미지 파일: images/이미지_03_code_plain_text_ec4f246ceb.png
+
+plt.boxplot(df["price"])  # 박스 플롯
+plt.show()
+
+────────────────────────
+
+[4] PLAIN TEXT 코드
+이미지 파일: images/이미지_04_code_plain_text_30c747512f.png
+
+import seaborn as sns
+
+sns.heatmap(df.corr(numeric_only=True), annot=True)
+plt.show()
+
+────────────────────────
+
+[5] PLAIN TEXT 코드
+이미지 파일: images/이미지_05_code_plain_text_f1d0266e6a.png
+
+import seaborn as sns
+
+sns.histplot(data=df, x="age", kde=True)
+sns.scatterplot(data=df, x="age", y="price")
+
+────────────────────────
+
+[6] PLAIN TEXT 코드
+이미지 파일: images/이미지_06_code_plain_text_83becf667f.png
+
+df["sales"].plot(kind="line")
+df["category"].value_counts().plot(kind="bar")
+
+────────────────────────
+
+[7] PLAIN TEXT 코드
+이미지 파일: images/이미지_01_code_plain_text_d72b9a0b13.png
+
+import matplotlib.pyplot as plt
+
+plt.plot([1, 2, 3], [10, 20, 15])  # 선 그래프
+plt.show()
+
+────────────────────────
+
+[8] PLAIN TEXT 코드
+이미지 파일: images/이미지_02_code_plain_text_2e6f738028.png
+
+plt.hist(df["age"], bins=10)  # 히스토그램
+plt.show()
+
+────────────────────────
+
+[9] PLAIN TEXT 코드
+이미지 파일: images/이미지_03_code_plain_text_ec4f246ceb.png
+
+plt.boxplot(df["price"])  # 박스 플롯
+plt.show()
+
+────────────────────────
+
+[10] PLAIN TEXT 코드
+이미지 파일: images/이미지_04_code_plain_text_30c747512f.png
+
+import seaborn as sns
+
+sns.heatmap(df.corr(numeric_only=True), annot=True)
+plt.show()
+
+────────────────────────
+
+[11] PLAIN TEXT 코드
+이미지 파일: images/이미지_05_code_plain_text_f1d0266e6a.png
+
+import seaborn as sns
+
+sns.histplot(data=df, x="age", kde=True)
+sns.scatterplot(data=df, x="age", y="price")
+
+────────────────────────
+
+[12] PLAIN TEXT 코드
+이미지 파일: images/이미지_06_code_plain_text_83becf667f.png
+
+df["sales"].plot(kind="line")
+df["category"].value_counts().plot(kind="bar")
+
+────────────────────────

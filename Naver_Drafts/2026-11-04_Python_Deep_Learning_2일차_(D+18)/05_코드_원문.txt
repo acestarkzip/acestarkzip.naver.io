@@ -1,0 +1,39 @@
+코드 원문 백업 (필요한 경우에만 사용)
+
+[1] PYTHON 코드
+이미지 파일: images/이미지_01_code_python_c4f336fa7a.png
+
+import torch.nn as nn
+import torch.nn.functional as F
+
+class CustomMLP(nn.Module):
+    def __init__(self):
+        super(CustomMLP, self).__init__() # 부모 클래스 초기화 필수
+        self.fc1 = nn.Linear(784, 256)
+        self.fc2 = nn.Linear(256, 10)
+
+    def forward(self, x):
+        x = F.relu(self.fc1(x)) # fc1 통과 후 ReLU 활성화
+        x = self.fc2(x)         # 출력층 통과
+        return x
+
+────────────────────────
+
+[2] PYTHON 코드
+이미지 파일: images/이미지_01_code_python_c4f336fa7a.png
+
+import torch.nn as nn
+import torch.nn.functional as F
+
+class CustomMLP(nn.Module):
+    def __init__(self):
+        super(CustomMLP, self).__init__() # 부모 클래스 초기화 필수
+        self.fc1 = nn.Linear(784, 256)
+        self.fc2 = nn.Linear(256, 10)
+
+    def forward(self, x):
+        x = F.relu(self.fc1(x)) # fc1 통과 후 ReLU 활성화
+        x = self.fc2(x)         # 출력층 통과
+        return x
+
+────────────────────────

@@ -1,0 +1,153 @@
+코드 원문 백업 (필요한 경우에만 사용)
+
+[1] PLAIN TEXT 코드
+이미지 파일: images/이미지_01_code_plain_text_6307ec8142.png
+
+#!/bin/bash
+echo "Hello, Linux!"
+pwd
+ls
+
+────────────────────────
+
+[2] PLAIN TEXT 코드
+이미지 파일: images/이미지_02_code_plain_text_252f01f9a4.png
+
+chmod +x script.sh
+./script.sh
+
+────────────────────────
+
+[3] PLAIN TEXT 코드
+이미지 파일: images/이미지_03_code_plain_text_193b8d293f.png
+
+name="Robot"
+echo "$name"
+
+────────────────────────
+
+[4] PLAIN TEXT 코드
+이미지 파일: images/이미지_04_code_plain_text_e7a2b9317d.png
+
+if [ "$1" -gt 10 ]; then
+    echo "10보다 큽니다."
+else
+    echo "10 이하입니다."
+fi
+
+────────────────────────
+
+[5] PLAIN TEXT 코드
+이미지 파일: images/이미지_05_code_plain_text_dd2ea9a74b.png
+
+for i in 1 2 3; do
+    echo "$i"
+done
+
+────────────────────────
+
+[6] PLAIN TEXT 코드
+이미지 파일: images/이미지_06_code_plain_text_dd05ed2cf3.png
+
+count=1
+while [ "$count" -le 3 ]; do
+    echo "$count"
+    count=$((count + 1))
+done
+
+────────────────────────
+
+[7] PLAIN TEXT 코드
+이미지 파일: images/이미지_07_code_plain_text_c0e172549e.png
+
+ip addr
+ping -c 4 google.com
+curl -I https://www.google.com
+
+────────────────────────
+
+[8] PLAIN TEXT 코드
+이미지 파일: images/이미지_08_code_plain_text_0a733c2617.png
+
+#!/bin/bash
+echo "작업 시작: $(date)"
+mkdir -p logs
+echo "작업 완료"
+
+────────────────────────
+
+[9] PLAIN TEXT 코드
+이미지 파일: images/이미지_01_code_plain_text_6307ec8142.png
+
+#!/bin/bash
+echo "Hello, Linux!"
+pwd
+ls
+
+────────────────────────
+
+[10] PLAIN TEXT 코드
+이미지 파일: images/이미지_02_code_plain_text_252f01f9a4.png
+
+chmod +x script.sh
+./script.sh
+
+────────────────────────
+
+[11] PLAIN TEXT 코드
+이미지 파일: images/이미지_03_code_plain_text_193b8d293f.png
+
+name="Robot"
+echo "$name"
+
+────────────────────────
+
+[12] PLAIN TEXT 코드
+이미지 파일: images/이미지_04_code_plain_text_e7a2b9317d.png
+
+if [ "$1" -gt 10 ]; then
+    echo "10보다 큽니다."
+else
+    echo "10 이하입니다."
+fi
+
+────────────────────────
+
+[13] PLAIN TEXT 코드
+이미지 파일: images/이미지_05_code_plain_text_dd2ea9a74b.png
+
+for i in 1 2 3; do
+    echo "$i"
+done
+
+────────────────────────
+
+[14] PLAIN TEXT 코드
+이미지 파일: images/이미지_06_code_plain_text_dd05ed2cf3.png
+
+count=1
+while [ "$count" -le 3 ]; do
+    echo "$count"
+    count=$((count + 1))
+done
+
+────────────────────────
+
+[15] PLAIN TEXT 코드
+이미지 파일: images/이미지_07_code_plain_text_c0e172549e.png
+
+ip addr
+ping -c 4 google.com
+curl -I https://www.google.com
+
+────────────────────────
+
+[16] PLAIN TEXT 코드
+이미지 파일: images/이미지_08_code_plain_text_0a733c2617.png
+
+#!/bin/bash
+echo "작업 시작: $(date)"
+mkdir -p logs
+echo "작업 완료"
+
+────────────────────────

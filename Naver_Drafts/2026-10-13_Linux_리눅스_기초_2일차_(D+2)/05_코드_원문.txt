@@ -1,0 +1,93 @@
+코드 원문 백업 (필요한 경우에만 사용)
+
+[1] PLAIN TEXT 코드
+이미지 파일: images/이미지_01_code_plain_text_dcb8d9e554.png
+
+whoami
+sudo apt update
+
+────────────────────────
+
+[2] PLAIN TEXT 코드
+이미지 파일: images/이미지_02_code_plain_text_5226e20120.png
+
+ls -l
+chmod 755 script.sh
+chmod +x script.sh
+
+────────────────────────
+
+[3] PLAIN TEXT 코드
+이미지 파일: images/이미지_03_code_plain_text_3bb2fa7184.png
+
+groups
+id
+sudo chgrp developers file.txt
+
+────────────────────────
+
+[4] PLAIN TEXT 코드
+이미지 파일: images/이미지_04_code_plain_text_9894dddcbe.png
+
+ps aux
+top
+sleep 100 &
+jobs
+kill 1234
+
+────────────────────────
+
+[5] PLAIN TEXT 코드
+이미지 파일: images/이미지_05_code_plain_text_1e1e884ce2.png
+
+sudo apt update
+sudo apt install git
+git --version
+
+────────────────────────
+
+[6] PLAIN TEXT 코드
+이미지 파일: images/이미지_01_code_plain_text_dcb8d9e554.png
+
+whoami
+sudo apt update
+
+────────────────────────
+
+[7] PLAIN TEXT 코드
+이미지 파일: images/이미지_02_code_plain_text_5226e20120.png
+
+ls -l
+chmod 755 script.sh
+chmod +x script.sh
+
+────────────────────────
+
+[8] PLAIN TEXT 코드
+이미지 파일: images/이미지_03_code_plain_text_3bb2fa7184.png
+
+groups
+id
+sudo chgrp developers file.txt
+
+────────────────────────
+
+[9] PLAIN TEXT 코드
+이미지 파일: images/이미지_04_code_plain_text_9894dddcbe.png
+
+ps aux
+top
+sleep 100 &
+jobs
+kill 1234
+
+────────────────────────
+
+[10] PLAIN TEXT 코드
+이미지 파일: images/이미지_05_code_plain_text_1e1e884ce2.png
+
+sudo apt update
+sudo apt install git
+git --version
+
+────────────────────────

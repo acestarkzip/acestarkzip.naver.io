@@ -51,8 +51,8 @@
     },
     "420d9e12-9df7-80a9-bd2d-d0d943ef5000": {
       "folder": "2026-11-21_EP.01_-_왜_OpenUSD를_사용해야_할까요_NVIDIA_Omniverse와_3D_시뮬레이션의_핵심_기술",
-      "last_edited_time": "2026-11-22T04:33:00.000Z",
-      "content_hash": "7a3d16e9404b826d48d376545d147bc0a949336eca40d61a19ec5ff29bee190e",
+      "last_edited_time": "2026-11-22T07:55:00.000Z",
+      "content_hash": "b90979d73eb53950f48f5d3bc309ba4cbbd818814782b7a466d45078f08fca35",
       "status": "draft",
       "title": "EP.01 - 왜 OpenUSD를 사용해야 할까요? NVIDIA Omniverse와 3D 시뮬레이션의 핵심 기술",
       "date": "2026-11-21"
@@ -378,13 +378,13 @@
       "date": "2026-11-15"
     }
   },
-  "last_scan": "2026-11-22T10:47:20.433967+00:00",
+  "last_scan": "2026-11-22T11:57:07.714849+00:00",
   "scan_window": {
-    "scope": "Today",
-    "start": "2026-11-22",
-    "end": "2026-11-22",
-    "last_edited_after": null,
-    "lookback_days": null,
+    "scope": "EDITED_WEEK",
+    "start": null,
+    "end": null,
+    "last_edited_after": "2026-11-08T11:54:07Z",
+    "lookback_days": 14,
     "timezone": "Asia/Seoul"
   }
 }
