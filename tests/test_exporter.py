@@ -162,24 +162,147 @@ def test_notion_datetime_parses_zulu_timestamp():
     assert parsed == datetime(2026, 11, 22, 3, 0, tzinfo=timezone.utc)
 
 
-def test_should_skip_processed_page_only_refreshes_changed_draft_in_edited_week():
+def test_should_skip_unchanged_complete_draft():
+    from exporter import should_skip_processed_page
+
+    previous = {
+        "status": "draft",
+        "last_edited_time": "2026-11-20T00:00:00.000Z",
+        "content_hash": "same-hash",
+    }
+    assert should_skip_processed_page(
+        previous, "2026-11-20T00:00:00.000Z", "same-hash", draft_exists=True
+    ) is True
+
+
+def test_should_regenerate_when_notion_page_was_edited():
+    from exporter import should_skip_processed_page
+
+    previous = {
+        "status": "draft",
+        "last_edited_time": "2026-11-20T00:00:00.000Z",
+        "content_hash": "same-hash",
+    }
+    assert should_skip_processed_page(
+        previous, "2026-11-21T00:00:00.000Z", "new-hash", draft_exists=True
+    ) is False
+
+
+def test_should_regenerate_when_body_hash_changes_even_if_page_timestamp_is_same():
+    from exporter import should_skip_processed_page
+
+    previous = {
+        "status": "draft",
+        "last_edited_time": "2026-11-20T00:00:00.000Z",
+        "content_hash": "old-body-hash",
+    }
+    assert should_skip_processed_page(
+        previous, "2026-11-20T00:00:00.000Z", "new-body-hash", draft_exists=True
+    ) is False
+
+
+def test_should_recreate_draft_when_tracked_output_folder_is_missing():
+    from exporter import should_skip_processed_page
+
+    previous = {
+        "status": "draft",
+        "last_edited_time": "2026-11-20T00:00:00.000Z",
+        "content_hash": "same-hash",
+    }
+    assert should_skip_processed_page(
+        previous, "2026-11-20T00:00:00.000Z", "same-hash", draft_exists=False
+    ) is False
+
+
+def test_should_export_page_when_it_is_not_in_processing_history():
+    from exporter import should_skip_processed_page
+
+    assert should_skip_processed_page(None, "2026-11-21T00:00:00.000Z", "hash") is False
+
+
+def test_published_pages_are_always_skipped_even_if_files_are_missing_or_changed():
+    from exporter import should_skip_processed_page
+
+    previous = {"status": "published", "last_edited_time": "old", "content_hash": "old"}
+    assert should_skip_processed_page(previous, "new", "new", draft_exists=False) is True
+
+
+def test_draft_outputs_exist_requires_core_generated_files(tmp_path):
+    from exporter import draft_outputs_exist
+
+    folder = tmp_path / "draft"
+    folder.mkdir()
+    required = [
+        "01_네이버_제목.txt",
+        "02_네이버_본문.txt",
+        "02_네이버_본문_서식.docx",
+        "metadata.json",
+    ]
+    for name in required:
+        (folder / name).write_text("ok", encoding="utf-8")
+    assert draft_outputs_exist(folder) is True
+    (folder / "metadata.json").unlink()
+    assert draft_outputs_exist(folder) is False
+
+
+def test_page_content_fingerprint_changes_when_block_content_changes():
+    from exporter import page_content_fingerprint
+
+    page = {
+        "last_edited_time": "2026-11-20T00:00:00.000Z",
+        "properties": {
+            "제목": {"type": "title", "title": [{"plain_text": "테스트 제목"}]},
+            "날짜": {"type": "date", "date": {"start": "2026-11-20"}},
+        },
+    }
+    before = [{"id": "block-1", "type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "이전 본문"}]}}]
+    after = [{"id": "block-1", "type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "수정된 본문"}]}}]
+    assert page_content_fingerprint(page, before) != page_content_fingerprint(page, after)
+
+
+def test_page_content_fingerprint_is_stable_for_identical_content():
+    from exporter import page_content_fingerprint
+
+    page = {
+        "last_edited_time": "2026-11-20T00:00:00.000Z",
+        "properties": {
+            "제목": {"type": "title", "title": [{"plain_text": "테스트 제목"}]},
+            "날짜": {"type": "date", "date": {"start": "2026-11-20"}},
+        },
+    }
+    blocks = [{"id": "block-1", "type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "본문"}]}}]
+    assert page_content_fingerprint(page, blocks) == page_content_fingerprint(page, blocks)
+
+
+
+def test_old_processing_record_without_content_hash_is_migrated_once():
     from exporter import should_skip_processed_page
 
     previous = {"status": "draft", "last_edited_time": "2026-11-20T00:00:00.000Z"}
-    unchanged = "2026-11-20T00:00:00.000Z"
-    changed = "2026-11-21T00:00:00.000Z"
-
-    assert should_skip_processed_page(previous, unchanged, "EDITED_WEEK") is True
-    assert should_skip_processed_page(previous, changed, "EDITED_WEEK") is False
-    assert should_skip_processed_page(previous, changed, "Yesterday") is True
-    assert should_skip_processed_page(previous, unchanged, "Yesterday", update_existing=True) is False
+    assert should_skip_processed_page(
+        previous, "2026-11-20T00:00:00.000Z", "new-fingerprint", draft_exists=True
+    ) is False
 
 
-def test_published_pages_are_always_skipped_even_in_edited_week():
-    from exporter import should_skip_processed_page
+def test_fingerprint_ignores_rotating_notion_hosted_file_urls():
+    from exporter import page_content_fingerprint
 
-    previous = {"status": "published", "last_edited_time": "old"}
-    assert should_skip_processed_page(previous, "new", "EDITED_WEEK", update_existing=True) is True
+    page = {
+        "last_edited_time": "2026-11-20T00:00:00.000Z",
+        "properties": {
+            "제목": {"type": "title", "title": [{"plain_text": "이미지 테스트"}]},
+            "날짜": {"type": "date", "date": {"start": "2026-11-20"}},
+        },
+    }
+    a = [{"id": "img", "type": "image", "image": {"file": {"url": "https://signed.example/a", "expiry_time": "later"}, "caption": []}}]
+    b = [{"id": "img", "type": "image", "image": {"file": {"url": "https://signed.example/b", "expiry_time": "tomorrow"}, "caption": []}}]
+    assert page_content_fingerprint(page, a) == page_content_fingerprint(page, b)
+
+def test_workflow_has_no_manual_refresh_checkbox():
+    workflow = (Path(__file__).resolve().parents[1] / ".github/workflows/naver-blog.yml").read_text(encoding="utf-8")
+    assert "refresh_existing" not in workflow
+    assert "UPDATE_EXISTING_DRAFTS" not in workflow
+
 
 
 def test_requested_fetch_mode_prefers_workflow_variable_and_keeps_legacy_fallback():

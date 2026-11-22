@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import re
 import json
+import hashlib
 import mimetypes
 import zipfile
 from pathlib import Path
@@ -28,7 +29,6 @@ DATE_PROP = os.getenv("NOTION_PROPERTY_DATE", "날짜")
 MEMO_PROP = os.getenv("NOTION_PROPERTY_MEMO", "간단메모")
 TAGS_PROP = os.getenv("NOTION_PROPERTY_TAGS", "태그")
 MAX_DOWNLOAD_BYTES = int(os.getenv("MAX_DOWNLOAD_MB", "50")) * 1024 * 1024
-UPDATE_EXISTING = os.getenv("UPDATE_EXISTING_DRAFTS", "false").lower() == "true"
 KST = ZoneInfo("Asia/Seoul")
 
 
@@ -230,27 +230,87 @@ def notion_datetime(value: str | None) -> datetime | None:
     return parsed.astimezone(timezone.utc)
 
 
+def draft_outputs_exist(folder: Path) -> bool:
+    """Return whether a tracked draft folder contains its core generated files."""
+    required_files = (
+        "01_네이버_제목.txt",
+        "02_네이버_본문.txt",
+        "02_네이버_본문_서식.docx",
+        "metadata.json",
+    )
+    return folder.is_dir() and all((folder / name).is_file() for name in required_files)
+
+
+def _stable_blocks_for_fingerprint(blocks: list[dict]) -> list[dict]:
+    """Normalize block trees while dropping expiring Notion-hosted file URLs."""
+    normalized: list[dict] = []
+    for block in blocks or []:
+        item = {key: value for key, value in block.items() if key != "_children"}
+        kind = str(block.get("type") or "")
+        data = item.get(kind)
+        if isinstance(data, dict):
+            data = dict(data)
+            hosted_file = data.get("file")
+            if isinstance(hosted_file, dict):
+                hosted_file = dict(hosted_file)
+                # Notion-hosted file URLs are temporary signed URLs and may
+                # rotate between requests without the article itself changing.
+                hosted_file.pop("url", None)
+                hosted_file.pop("expiry_time", None)
+                data["file"] = hosted_file
+            item[kind] = data
+        item["_children"] = _stable_blocks_for_fingerprint(block.get("_children") or [])
+        normalized.append(item)
+    return normalized
+
+
+def page_content_fingerprint(page: dict, blocks: list[dict]) -> str:
+    """Hash the Notion page properties and complete nested block tree.
+
+    Including block content catches article edits even if the parent page's
+    last_edited_time is unchanged. Temporary signed Notion file URLs are ignored.
+    """
+    payload = {
+        "last_edited_time": page.get("last_edited_time", ""),
+        "title": title_of(page),
+        "date": date_of(page).isoformat() if date_of(page) else None,
+        "memo": memo_of(page),
+        "tags": tags_of(page),
+        "blocks": _stable_blocks_for_fingerprint(blocks),
+    }
+    canonical = json.dumps(
+        payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"), default=str
+    )
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
 def should_skip_processed_page(
     previous: dict | None,
     last_edited: str,
-    fetch_mode: str,
-    update_existing: bool = False,
+    content_hash: str,
+    draft_exists: bool = True,
 ) -> bool:
-    """Decide whether an already tracked page should be left untouched.
+    """Skip only published pages or unchanged drafts whose outputs still exist.
 
-    Published pages are always protected. EDITED_WEEK refreshes an existing
-    draft only when Notion's last_edited_time changed since its last export.
-    Other modes retain the existing UPDATE_EXISTING_DRAFTS behavior.
+    Every fetch mode automatically refreshes an existing draft when its page
+    timestamp or content fingerprint changes. Missing/incomplete output files
+    are regenerated even when the processing history still contains the page.
+    Published pages remain protected in every mode.
     """
     if not previous:
         return False
     if previous.get("status") == "published":
         return True
-    if update_existing:
+    if not draft_exists:
         return False
-    if fetch_mode == "EDITED_WEEK":
-        return previous.get("last_edited_time", "") == last_edited
-    return True
+    previous_last_edited = previous.get("last_edited_time") or ""
+    previous_hash = previous.get("content_hash") or ""
+    return (
+        bool(previous_last_edited)
+        and previous_last_edited == (last_edited or "")
+        and bool(previous_hash)
+        and previous_hash == content_hash
+    )
 
 
 def date_window(
@@ -354,20 +414,33 @@ def main() -> None:
         page_id = page["id"]
         last_edited = page.get("last_edited_time", "")
         previous = processed.get(page_id)
-
-        if should_skip_processed_page(previous, last_edited, date_scope, UPDATE_EXISTING):
-            if previous and previous.get("status") == "published":
-                print(f"[SKIP] 발행 완료 페이지 보호: {title_of(page)}")
-            elif date_scope == "EDITED_WEEK" and previous:
-                print(f"[SKIP] 수정되지 않은 기존 초안: {title_of(page)}")
-            else:
-                print(f"[SKIP] 이미 처리한 페이지: {title_of(page)}")
+        if previous and previous.get("status") == "published":
+            print(f"[SKIP] 발행 완료 페이지 보호: {title_of(page)}")
             skipped += 1
             continue
 
-        # When update_existing is enabled, regenerate every un-published draft
-        # in the scan window, even if Notion's last_edited_time is unchanged.
-        # This also supports re-rendering after converter/template improvements.
+        previous_folder_name = (previous or {}).get("folder") or ""
+        previous_folder = DRAFTS / previous_folder_name if previous_folder_name else None
+        outputs_exist = bool(previous_folder and draft_outputs_exist(previous_folder))
+
+        # Load the current Notion blocks before deciding to skip. This makes
+        # edits to the article body detectable, not just page-property edits.
+        blocks = load_tree(get_blocks(page_id))
+        content_hash = page_content_fingerprint(page, blocks)
+
+        if should_skip_processed_page(previous, last_edited, content_hash, outputs_exist):
+            print(f"[SKIP] 변경 없음: {title_of(page)} (기존 초안 유지)")
+            skipped += 1
+            continue
+
+        if previous:
+            if not outputs_exist:
+                print(f"[REBUILD] 기존 초안 파일이 없거나 불완전함: {title_of(page)}")
+            elif (previous.get("last_edited_time") != last_edited
+                  or previous.get("content_hash") != content_hash):
+                print(f"[UPDATE] Notion 본문/속성 변경 감지: {title_of(page)}")
+            else:
+                print(f"[REBUILD] 기존 초안에 내용 해시가 없어 최신 형식으로 갱신: {title_of(page)}")
 
         title = title_of(page)
         memo = memo_of(page)
@@ -379,7 +452,6 @@ def main() -> None:
             folder_name = f"{folder_name}_{page_id.replace('-', '')[:6]}"
             folder = DRAFTS / folder_name
 
-        blocks = load_tree(get_blocks(page_id))
         images_folder = folder / "images"
         images_folder.mkdir(parents=True, exist_ok=True)
         # Remove only generated image assets from prior runs; preserve any unrelated files.
@@ -564,6 +636,7 @@ def main() -> None:
             "memo": memo,
             "tags": tags,
             "last_edited_time": last_edited,
+            "content_hash": content_hash,
             "notion_url": page.get("url"),
             "exported_at": datetime.now(timezone.utc).isoformat(),
             "status": "draft",
@@ -575,6 +648,7 @@ def main() -> None:
         processed[page_id] = {
             "folder": folder_name,
             "last_edited_time": last_edited,
+            "content_hash": content_hash,
             "status": "draft",
             "title": title,
             "date": page_date.isoformat(),
