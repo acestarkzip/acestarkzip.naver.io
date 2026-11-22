@@ -73,3 +73,25 @@ def test_docx_without_toc_does_not_add_horizontal_dividers(tmp_path):
     destination = write_naver_docx("제목\n본문입니다.\n", tmp_path / "no-toc.docx")
     doc = Document(destination)
     assert all("w:pBdr" not in p._p.xml for p in doc.paragraphs)
+
+
+def test_docx_recognizes_bilingual_toc_heading_and_formats_toc_range(tmp_path):
+    text = (
+        "도입부입니다.\n\n"
+        "📚 목차 (Contents)\n"
+        "• 📖 오늘의 진행 내용 (Today's Topics)\n"
+        "  • 1. OpenUSD의 Stage란 무엇일까요?\n\n"
+        "📖 오늘의 진행 내용 (Today's Topics)\n"
+        "본문입니다.\n"
+    )
+    destination = write_naver_docx(text, tmp_path / "bilingual-toc.docx")
+    doc = Document(destination)
+
+    toc_heading = next(p for p in doc.paragraphs if p.text == "📚 목차 (Contents)")
+    last_toc_item = next(p for p in doc.paragraphs if "OpenUSD의 Stage란" in p.text)
+    body_heading = next(p for p in doc.paragraphs if p.text == "📖 오늘의 진행 내용 (Today's Topics)")
+
+    assert "<w:top" in toc_heading._p.xml
+    assert "<w:bottom" in last_toc_item._p.xml
+    assert "<w:top" not in body_heading._p.xml
+    assert "<w:bottom" not in body_heading._p.xml

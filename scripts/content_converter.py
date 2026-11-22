@@ -321,8 +321,20 @@ def _slugify_heading(text: str, counts: dict[str, int]) -> str:
 
 
 def _is_toc_heading(text: str) -> bool:
-    compact = re.sub(r"[^\w가-힣]+", "", text, flags=re.UNICODE).lower()
-    return compact in {"목차", "contents", "tableofcontents"}
+    """Recognize Korean/English TOC labels, including bilingual combinations.
+
+    Examples: ``목차``, ``📚 목차 (Contents)``, ``Contents (목차)``,
+    and ``Table of Contents``. A longer heading such as ``목차 작성법``
+    remains an ordinary article heading.
+    """
+    compact = re.sub(r"[^\w가-힣]+", "", str(text or ""), flags=re.UNICODE).lower()
+    if not compact:
+        return False
+
+    remainder = compact
+    for label in ("tableofcontents", "contents", "목차"):
+        remainder = remainder.replace(label, "")
+    return remainder == ""
 
 
 def render_blocks(
@@ -596,7 +608,7 @@ def render_plain_text(
         for heading in headings:
             title = str(heading.get("title", "")).strip()
             compact = re.sub(r"[^\w가-힣]+", "", title, flags=re.UNICODE).lower()
-            if not title or compact in {"목차", "contents", "tableofcontents", "contactus", "연락처"}:
+            if not title or _is_toc_heading(title) or compact in {"contactus", "연락처"}:
                 continue
             level = max(2, min(int(heading.get("level", 2)), 5))
             rows.append("  " * (level - 2) + "• " + title)
@@ -643,8 +655,7 @@ def render_plain_text(
 
             elif kind in ("heading_1", "heading_2", "heading_3", "heading_4"):
                 if raw:
-                    compact = re.sub(r"[^\w가-힣]+", "", raw, flags=re.UNICODE).lower()
-                    if compact in {"목차", "contents", "tableofcontents"}:
+                    if _is_toc_heading(raw):
                         result.append(indent + (raw if "목차" in raw else "📚 목차"))
                         if toc_rows and not toc_written:
                             result.extend(indent + row for row in toc_rows)

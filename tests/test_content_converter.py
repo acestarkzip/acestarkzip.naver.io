@@ -398,3 +398,35 @@ def test_contact_section_has_no_generated_card_image_or_placeholder():
     assert "Contact us" in text_output
     assert "SSS Robotics 연락처 링크 카드" not in html_output
     assert "연락처 링크 카드" not in text_output
+
+
+def test_bilingual_toc_heading_generates_toc_in_html_and_plain_text():
+    blocks = [
+        {"type": "heading_1", "heading_1": {"rich_text": [rt("📚 목차 (Contents)")] }},
+        {"type": "heading_1", "heading_1": {"rich_text": [rt("📖 오늘의 진행 내용 (Today's Topics)")] }},
+        {"type": "heading_2", "heading_2": {"rich_text": [rt("📕 1. OpenUSD의 Stage란 무엇일까요?")] }},
+        {"type": "heading_3", "heading_3": {"rich_text": [rt("📄 1-1. Stage와 USD 파일의 관계")] }},
+    ]
+    headings = []
+    body_html = render_blocks(blocks, {}, [], headings=headings)
+    html_output = wrap_html("테스트 글", body_html, [], headings)
+    plain_output = render_plain_text(blocks, headings=headings)
+
+    assert "목차 (Contents)</h2>" not in body_html
+    assert "<strong>📚 목차</strong>" in html_output
+    assert "오늘의 진행 내용 (&#x27;Today&#x27;s Topics&#x27;)" in html_output or "오늘의 진행 내용" in html_output
+    assert "OpenUSD의 Stage란 무엇일까요?" in html_output
+    assert "📚 목차 (Contents)" in plain_output
+    assert "• 📖 오늘의 진행 내용 (Today's Topics)" in plain_output
+    assert "  • 📕 1. OpenUSD의 Stage란 무엇일까요?" in plain_output
+
+
+def test_toc_heading_matcher_does_not_match_longer_article_heading():
+    from content_converter import _is_toc_heading
+
+    assert _is_toc_heading("📚 목차")
+    assert _is_toc_heading("📚 목차 (Contents)")
+    assert _is_toc_heading("Contents (목차)")
+    assert _is_toc_heading("Table of Contents")
+    assert not _is_toc_heading("목차 작성 방법")
+    assert not _is_toc_heading("Contents of OpenUSD Stage")

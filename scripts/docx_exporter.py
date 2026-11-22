@@ -12,6 +12,8 @@ from docx.enum.text import WD_COLOR_INDEX
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 
+from content_converter import _is_toc_heading
+
 HEADING_SIZES = {1: 30, 2: 28, 3: 24, 4: 19}
 BODY_SIZE = 15
 YELLOW = WD_COLOR_INDEX.YELLOW
@@ -124,7 +126,7 @@ def _set_paragraph_border(paragraph, edge: str, color: str = "B7B7B7") -> None:
 def _find_toc_range(lines: list[str]) -> tuple[int, int] | None:
     """Return the TOC heading and final TOC-list line indexes, if present."""
     start = next(
-        (i for i, line in enumerate(lines) if line.strip() in {"📚 목차", "목차"}),
+        (i for i, line in enumerate(lines) if _is_toc_heading(line.strip())),
         None,
     )
     if start is None:
@@ -197,7 +199,7 @@ def write_naver_docx(
             level = heading_lookup[key].popleft()
 
         # The generated TOC label was a Notion heading placeholder, so make it readable too.
-        if content in {"📚 목차", "목차"}:
+        if _is_toc_heading(content):
             level = 1
 
         if level in HEADING_SIZES:
