@@ -56,9 +56,16 @@
       "status": "draft",
       "title": "ROS Ubuntu 설치 후 turtlesim 그림 그리기",
       "date": "2026-11-20"
+    },
+    "420d9e12-9df7-8066-b41f-e79f70458698": {
+      "folder": "2026-11-22_EP.02_-_OpenUSD의_Stage란_무엇일까요_(What_Is_a_Stage)",
+      "last_edited_time": "2026-11-22T04:04:00.000Z",
+      "status": "draft",
+      "title": "EP.02 - OpenUSD의 Stage란 무엇일까요? (What Is a Stage?)",
+      "date": "2026-11-22"
     }
   },
-  "last_scan": "2026-11-21T22:43:01.599499+00:00",
+  "last_scan": "2026-11-22T04:07:46.164292+00:00",
   "scan_window": {
     "scope": "Today",
     "start": "2026-11-22",
