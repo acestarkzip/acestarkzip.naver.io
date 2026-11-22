@@ -135,3 +135,56 @@ def test_post_body_does_not_append_database_property_tags():
     assert result == body + "\n"
     assert "#자기개발" not in result
     assert "#S급로봇연구소" in result  # hashtags explicitly written in Notion remain intact
+
+
+def test_normalize_fetch_mode_supports_actions_modes_and_legacy_names():
+    from exporter import normalize_fetch_mode
+
+    assert normalize_fetch_mode("TODAY") == "Today"
+    assert normalize_fetch_mode("Yesterday") == "Yesterday"
+    assert normalize_fetch_mode("edited_week") == "EDITED_WEEK"
+    assert normalize_fetch_mode("ALL") == "ALL"
+
+
+def test_normalize_fetch_mode_rejects_unknown_mode():
+    import pytest
+    from exporter import normalize_fetch_mode
+
+    with pytest.raises(ValueError, match="지원하지 않는 조회 범위"):
+        normalize_fetch_mode("LastYear")
+
+
+def test_notion_datetime_parses_zulu_timestamp():
+    from datetime import datetime, timezone
+    from exporter import notion_datetime
+
+    parsed = notion_datetime("2026-11-22T03:00:00.000Z")
+    assert parsed == datetime(2026, 11, 22, 3, 0, tzinfo=timezone.utc)
+
+
+def test_should_skip_processed_page_only_refreshes_changed_draft_in_edited_week():
+    from exporter import should_skip_processed_page
+
+    previous = {"status": "draft", "last_edited_time": "2026-11-20T00:00:00.000Z"}
+    unchanged = "2026-11-20T00:00:00.000Z"
+    changed = "2026-11-21T00:00:00.000Z"
+
+    assert should_skip_processed_page(previous, unchanged, "EDITED_WEEK") is True
+    assert should_skip_processed_page(previous, changed, "EDITED_WEEK") is False
+    assert should_skip_processed_page(previous, changed, "Yesterday") is True
+    assert should_skip_processed_page(previous, unchanged, "Yesterday", update_existing=True) is False
+
+
+def test_published_pages_are_always_skipped_even_in_edited_week():
+    from exporter import should_skip_processed_page
+
+    previous = {"status": "published", "last_edited_time": "old"}
+    assert should_skip_processed_page(previous, "new", "EDITED_WEEK", update_existing=True) is True
+
+
+def test_requested_fetch_mode_prefers_workflow_variable_and_keeps_legacy_fallback():
+    from exporter import requested_fetch_mode
+
+    assert requested_fetch_mode({"FETCH_MODE": "YESTERDAY", "NAVER_DATE_SCOPE": "Today"}) == "Yesterday"
+    assert requested_fetch_mode({"NAVER_DATE_SCOPE": "Week"}) == "Week"
+    assert requested_fetch_mode({}) == "Today"

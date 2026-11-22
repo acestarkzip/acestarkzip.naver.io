@@ -63,12 +63,14 @@ def query_database(
     on_date: str | None = None,
     start_date: str | None = None,
     end_date: str | None = None,
+    last_edited_after: str | None = None,
 ) -> list[dict]:
-    """Query all pages or filter a Notion date property by one day or a range.
+    """Query all pages or filter by a Notion date property / page edit time.
 
     - on_date: exact calendar date
     - start_date / end_date: inclusive date range; either boundary may be omitted
-    - no date arguments: all pages (ALL manual scope)
+    - last_edited_after: ISO-8601 timestamp; only recently edited pages are returned
+    - no filters: all pages (ALL manual scope)
     """
     if not DB:
         raise RuntimeError("NOTION_DATABASE_ID가 설정되지 않았습니다.")
@@ -79,6 +81,8 @@ def query_database(
     has_date_filter = on_date is not None or start_date is not None or end_date is not None
     if has_date_filter and not date_property:
         raise ValueError("날짜 필터를 사용하려면 date_property가 필요합니다.")
+    if last_edited_after is not None and has_date_filter:
+        raise ValueError("last_edited_after와 게시일 날짜 필터는 함께 사용할 수 없습니다.")
 
     date_filter: dict[str, str] = {}
     if on_date is not None:
@@ -100,6 +104,13 @@ def query_database(
             payload["filter"] = {
                 "property": date_property,
                 "date": date_filter,
+            }
+        elif last_edited_after is not None:
+            # Notion supports a page-level timestamp filter without adding a
+            # dedicated "Last edited time" property to the database.
+            payload["filter"] = {
+                "timestamp": "last_edited_time",
+                "last_edited_time": {"on_or_after": last_edited_after},
             }
         if cursor:
             payload["start_cursor"] = cursor

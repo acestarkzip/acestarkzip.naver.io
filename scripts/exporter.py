@@ -192,6 +192,65 @@ def build_post_body_text(body_text: str) -> str:
     return body + "\n" if body else ""
 
 DATE_SCOPE_OPTIONS = ("Today", "Yesterday", "Week", "Month", "ALL")
+FETCH_MODE_OPTIONS = (*DATE_SCOPE_OPTIONS, "EDITED_WEEK")
+EDITED_LOOKBACK_DAYS = 14
+
+
+def requested_fetch_mode(environ: dict[str, str] | None = None) -> str:
+    """Read FETCH_MODE first, retaining NAVER_DATE_SCOPE as a legacy fallback."""
+    source = os.environ if environ is None else environ
+    return normalize_fetch_mode(
+        source.get("FETCH_MODE") or source.get("NAVER_DATE_SCOPE") or "Today"
+    )
+
+
+def normalize_fetch_mode(value: str | None) -> str:
+    """Normalize the workflow's FETCH_MODE and legacy local env variable."""
+    raw = (value or "Today").strip()
+    normalized = raw.lower()
+    modes = {mode.lower(): mode for mode in FETCH_MODE_OPTIONS}
+    if normalized not in modes:
+        raise ValueError(
+            f"지원하지 않는 조회 범위입니다: {raw!r}. "
+            f"사용 가능 값: {', '.join(FETCH_MODE_OPTIONS)}"
+        )
+    return modes[normalized]
+
+
+def notion_datetime(value: str | None) -> datetime | None:
+    """Parse Notion's ISO-8601 timestamp into an aware datetime."""
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def should_skip_processed_page(
+    previous: dict | None,
+    last_edited: str,
+    fetch_mode: str,
+    update_existing: bool = False,
+) -> bool:
+    """Decide whether an already tracked page should be left untouched.
+
+    Published pages are always protected. EDITED_WEEK refreshes an existing
+    draft only when Notion's last_edited_time changed since its last export.
+    Other modes retain the existing UPDATE_EXISTING_DRAFTS behavior.
+    """
+    if not previous:
+        return False
+    if previous.get("status") == "published":
+        return True
+    if update_existing:
+        return False
+    if fetch_mode == "EDITED_WEEK":
+        return previous.get("last_edited_time", "") == last_edited
+    return True
 
 
 def date_window(
@@ -232,34 +291,50 @@ def main() -> None:
 
     processed = tracker.setdefault("pages", {})
     today_kst = datetime.now(KST).date()
-    date_scope = os.getenv("NAVER_DATE_SCOPE", "Today").strip() or "Today"
-    start_date, end_date = date_window(today_kst, date_scope)
+    date_scope = requested_fetch_mode()
+    edited_after = None
 
-    # API 단계에서 가능한 한 범위를 좁혀 조회합니다. ALL인 경우에만 전체 페이지를 조회합니다.
-    if start_date is None and end_date is None:
-        pages = query_database()
+    if date_scope == "EDITED_WEEK":
+        edited_after_dt = datetime.now(timezone.utc) - timedelta(days=EDITED_LOOKBACK_DAYS)
+        edited_after = edited_after_dt.isoformat(timespec="seconds").replace("+00:00", "Z")
+        start_date, end_date = None, None
+        pages = query_database(last_edited_after=edited_after)
     else:
-        pages = query_database(
-            date_property=DATE_PROP,
-            start_date=start_date.isoformat() if start_date else None,
-            end_date=end_date.isoformat() if end_date else None,
-        )
+        start_date, end_date = date_window(today_kst, date_scope)
+        # API 단계에서 가능한 한 범위를 좁혀 조회합니다. ALL인 경우에만 전체 페이지를 조회합니다.
+        if start_date is None and end_date is None:
+            pages = query_database()
+        else:
+            pages = query_database(
+                date_property=DATE_PROP,
+                start_date=start_date.isoformat() if start_date else None,
+                end_date=end_date.isoformat() if end_date else None,
+            )
     candidates = []
 
-    # API 결과 날짜를 한 번 더 확인해 범위 밖 게시물이 섞이지 않도록 합니다.
+    # API 결과를 한 번 더 확인해 범위 밖 페이지가 섞이지 않도록 합니다.
     for page in pages:
         page_date = date_of(page)
         if page_date is None:
             print(f"[SKIP] 날짜 속성이 없거나 올바르지 않은 페이지: {title_of(page)}")
             continue
-        if start_date is not None and page_date < start_date:
-            continue
-        if end_date is not None and page_date > end_date:
-            continue
+        if date_scope == "EDITED_WEEK":
+            edited_at = notion_datetime(page.get("last_edited_time"))
+            if edited_at is None or edited_after is None:
+                continue
+            if edited_at < datetime.fromisoformat(edited_after.replace("Z", "+00:00")):
+                continue
+        else:
+            if start_date is not None and page_date < start_date:
+                continue
+            if end_date is not None and page_date > end_date:
+                continue
         candidates.append((page_date, page))
 
     candidates.sort(key=lambda item: (item[0], title_of(item[1])))
-    if start_date is None and end_date is None:
+    if date_scope == "EDITED_WEEK":
+        scope_description = f"최근 {EDITED_LOOKBACK_DAYS}일 수정된 페이지 (last_edited_time ≥ {edited_after})"
+    elif start_date is None and end_date is None:
         scope_description = "전체 기간"
     elif start_date == end_date:
         scope_description = start_date.isoformat()
@@ -280,13 +355,13 @@ def main() -> None:
         last_edited = page.get("last_edited_time", "")
         previous = processed.get(page_id)
 
-        if previous and previous.get("status") == "published":
-            print(f"[SKIP] 발행 완료 페이지 보호: {title_of(page)}")
-            skipped += 1
-            continue
-
-        if previous and not UPDATE_EXISTING:
-            print(f"[SKIP] 이미 처리한 페이지: {title_of(page)}")
+        if should_skip_processed_page(previous, last_edited, date_scope, UPDATE_EXISTING):
+            if previous and previous.get("status") == "published":
+                print(f"[SKIP] 발행 완료 페이지 보호: {title_of(page)}")
+            elif date_scope == "EDITED_WEEK" and previous:
+                print(f"[SKIP] 수정되지 않은 기존 초안: {title_of(page)}")
+            else:
+                print(f"[SKIP] 이미 처리한 페이지: {title_of(page)}")
             skipped += 1
             continue
 
@@ -512,6 +587,8 @@ def main() -> None:
         "scope": date_scope,
         "start": start_date.isoformat() if start_date else None,
         "end": end_date.isoformat() if end_date else None,
+        "last_edited_after": edited_after,
+        "lookback_days": EDITED_LOOKBACK_DAYS if date_scope == "EDITED_WEEK" else None,
         "timezone": "Asia/Seoul",
     }
     TRACKER.write_text(json.dumps(tracker, ensure_ascii=False, indent=2), encoding="utf-8")

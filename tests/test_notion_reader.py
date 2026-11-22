@@ -50,3 +50,22 @@ def test_query_database_requires_date_property_for_date_filter(monkeypatch):
     _capture_query(monkeypatch)
     with pytest.raises(ValueError, match="date_property"):
         notion_reader.query_database(start_date="2026-11-01")
+
+
+def test_query_database_last_edited_after_uses_timestamp_filter(monkeypatch):
+    calls = _capture_query(monkeypatch)
+    notion_reader.query_database(last_edited_after="2026-11-08T00:00:00Z")
+    assert calls[0][2]["filter"] == {
+        "timestamp": "last_edited_time",
+        "last_edited_time": {"on_or_after": "2026-11-08T00:00:00Z"},
+    }
+
+
+def test_query_database_rejects_combining_edit_time_and_date_filters(monkeypatch):
+    _capture_query(monkeypatch)
+    with pytest.raises(ValueError, match="함께 사용할 수 없습니다"):
+        notion_reader.query_database(
+            date_property="날짜",
+            start_date="2026-11-01",
+            last_edited_after="2026-11-08T00:00:00Z",
+        )
