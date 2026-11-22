@@ -1,4 +1,78 @@
 {
   "version": 1,
-  "pages": {}
+  "pages": {
+    "41ad9e12-9df7-80ac-999d-e5b0fe351760": {
+      "folder": "2026-11-16_LLM_프로젝트_진행_5일차_(D+26)",
+      "last_edited_time": "2026-11-18T07:28:00.000Z",
+      "content_hash": "bdb8ac32db6810335c74153c2a2de43e46c28d7b0d5f95d330892c746f03b243",
+      "status": "draft",
+      "title": "LLM 프로젝트 진행 5일차 (D+26)",
+      "date": "2026-11-16"
+    },
+    "41bd9e12-9df7-8001-9db6-e2dcd82f6e52": {
+      "folder": "2026-11-17_C++_1일차_(D+27)",
+      "last_edited_time": "2026-11-19T00:06:00.000Z",
+      "content_hash": "e07522d307a48f03e78184170c9a7529157387e63c32fe61daa0ddc84cfffecd",
+      "status": "draft",
+      "title": "C++ 1일차 (D+27)",
+      "date": "2026-11-17"
+    },
+    "41cd9e12-9df7-80af-bfc7-d6849f72a393": {
+      "folder": "2026-11-18_C++_2일차_(D+28)",
+      "last_edited_time": "2026-11-19T00:06:00.000Z",
+      "content_hash": "f2b8c31ee82be3fe8f29cb527bcd7a2e3ead20bb907f8f4ecd76fce07583e36e",
+      "status": "draft",
+      "title": "C++ 2일차 (D+28)",
+      "date": "2026-11-18"
+    },
+    "41dd9e12-9df7-8022-bc91-f082e1b1832c": {
+      "folder": "2026-11-19_C++_3일차_(D+29)",
+      "last_edited_time": "2026-11-19T05:45:00.000Z",
+      "content_hash": "0502a10d85b0a719af22773e31d614f477d2b841c5ee4d00c002bcc9213e6c20",
+      "status": "draft",
+      "title": "C++ 3일차 (D+29)",
+      "date": "2026-11-19"
+    },
+    "41dd9e12-9df7-8052-b1ad-cd5832eec025": {
+      "folder": "2026-11-19_C++_왜_알아야_하고,_어떻게_응용할_수_있는가",
+      "last_edited_time": "2026-11-21T09:51:00.000Z",
+      "content_hash": "f370962a91570e784857154dfa67c0f1415594a3b66b3944b963ed0b9a8480f7",
+      "status": "draft",
+      "title": "C++ 왜 알아야 하고, 어떻게 응용할 수 있는가?",
+      "date": "2026-11-19"
+    },
+    "41ed9e12-9df7-8011-ab7f-eb62bdba070b": {
+      "folder": "2026-11-20_ROS_2_Jazzy_기초_정리_개념·생태계부터_Turtlesim_통신_실습까지",
+      "last_edited_time": "2026-11-21T09:41:00.000Z",
+      "content_hash": "429fafe02b488e65048ea8b31934bc033c6c8e7fcced46e72f4c6ab5ff2dbe5b",
+      "status": "draft",
+      "title": "ROS 2 Jazzy 기초 정리: 개념·생태계부터 Turtlesim 통신 실습까지",
+      "date": "2026-11-20"
+    },
+    "420d9e12-9df7-80a9-bd2d-d0d943ef5000": {
+      "folder": "2026-11-21_EP.01_-_왜_OpenUSD를_사용해야_할까요_NVIDIA_Omniverse와_3D_시뮬레이션의_핵심_기술",
+      "last_edited_time": "2026-11-22T04:33:00.000Z",
+      "content_hash": "7a3d16e9404b826d48d376545d147bc0a949336eca40d61a19ec5ff29bee190e",
+      "status": "draft",
+      "title": "EP.01 - 왜 OpenUSD를 사용해야 할까요? NVIDIA Omniverse와 3D 시뮬레이션의 핵심 기술",
+      "date": "2026-11-21"
+    },
+    "420d9e12-9df7-8066-b41f-e79f70458698": {
+      "folder": "2026-11-22_EP.02_-_OpenUSD의_Stage란_무엇일까요_(What_Is_a_Stage)",
+      "last_edited_time": "2026-11-22T04:33:00.000Z",
+      "content_hash": "1a37f5cbeed76b6d3bb434dc2f9f9ab9a3c08ee639a271d146a179fd1048efb0",
+      "status": "draft",
+      "title": "EP.02 - OpenUSD의 Stage란 무엇일까요? (What Is a Stage?)",
+      "date": "2026-11-22"
+    }
+  },
+  "last_scan": "2026-11-22T05:05:13.082310+00:00",
+  "scan_window": {
+    "scope": "Week",
+    "start": "2026-11-16",
+    "end": "2026-11-22",
+    "last_edited_after": null,
+    "lookback_days": null,
+    "timezone": "Asia/Seoul"
+  }
 }

@@ -1,0 +1,27 @@
+코드 원문 백업 (필요한 경우에만 사용)
+
+[1] PYTHON 코드
+이미지 파일: images/이미지_07_code_python_f7521c44a7.png
+
+from pxr import Usd
+
+# 새로운 Stage 생성
+stage = Usd.Stage.CreateNew("robot_scene.usda")
+
+# 기존 USD 파일 열기
+stage = Usd.Stage.Open("robot_scene.usda")
+
+────────────────────────
+
+[2] PYTHON 코드
+이미지 파일: images/이미지_07_code_python_f7521c44a7.png
+
+from pxr import Usd
+
+# 새로운 Stage 생성
+stage = Usd.Stage.CreateNew("robot_scene.usda")
+
+# 기존 USD 파일 열기
+stage = Usd.Stage.Open("robot_scene.usda")
+
+────────────────────────

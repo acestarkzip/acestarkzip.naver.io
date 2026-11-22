@@ -1,0 +1,27 @@
+코드 원문 백업 (필요한 경우에만 사용)
+
+[1] C++ 코드
+이미지 파일: images/이미지_01_code_c__4930f07d3e.png
+
+#include <iostream>
+using namespace std;
+
+int main(){
+    cout << "Hello world!\n";
+    return 0;
+}
+
+────────────────────────
+
+[2] C++ 코드
+이미지 파일: images/이미지_01_code_c__4930f07d3e.png
+
+#include <iostream>
+using namespace std;
+
+int main(){
+    cout << "Hello world!\n";
+    return 0;
+}
+
+────────────────────────
