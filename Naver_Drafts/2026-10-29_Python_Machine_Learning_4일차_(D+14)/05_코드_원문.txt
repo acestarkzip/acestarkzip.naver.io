@@ -1,0 +1,167 @@
+코드 원문 백업 (필요한 경우에만 사용)
+
+[1] PLAIN TEXT 코드
+이미지 파일: images/이미지_01_code_plain_text_7aa8eb3f26.png
+
+from sklearn.ensemble import VotingClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.neighbors import KNeighborsClassifier
+
+model = VotingClassifier(
+    estimators=[
+        ('lr', LogisticRegression(max_iter=1000)),
+        ('dt', DecisionTreeClassifier(random_state=42)),
+        ('knn', KNeighborsClassifier(n_neighbors=5))
+    ],
+    voting='hard'
+)
+
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+
+────────────────────────
+
+[2] PLAIN TEXT 코드
+이미지 파일: images/이미지_02_code_plain_text_be213061c2.png
+
+from sklearn.ensemble import RandomForestClassifier
+
+model = RandomForestClassifier(
+    n_estimators=100,
+    max_depth=None,
+    random_state=42
+)
+
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+
+────────────────────────
+
+[3] PLAIN TEXT 코드
+이미지 파일: images/이미지_03_code_plain_text_e9e95754ce.png
+
+from sklearn.ensemble import GradientBoostingClassifier
+
+model = GradientBoostingClassifier(
+    n_estimators=100,
+    learning_rate=0.1,
+    max_depth=3,
+    random_state=42
+)
+
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+
+────────────────────────
+
+[4] PLAIN TEXT 코드
+이미지 파일: images/이미지_04_code_plain_text_7c497da179.png
+
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.metrics import accuracy_score, f1_score
+
+models = {
+    'Random Forest': RandomForestClassifier(
+        n_estimators=100,
+        random_state=42
+    ),
+    'Gradient Boosting': GradientBoostingClassifier(
+        n_estimators=100,
+        learning_rate=0.1,
+        random_state=42
+    )
+}
+
+for name, model in models.items():
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+
+    print(f'[{name}]')
+    print('Accuracy:', accuracy_score(y_test, y_pred))
+    print('F1-score:', f1_score(y_test, y_pred))
+
+────────────────────────
+
+[5] PLAIN TEXT 코드
+이미지 파일: images/이미지_01_code_plain_text_7aa8eb3f26.png
+
+from sklearn.ensemble import VotingClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.neighbors import KNeighborsClassifier
+
+model = VotingClassifier(
+    estimators=[
+        ('lr', LogisticRegression(max_iter=1000)),
+        ('dt', DecisionTreeClassifier(random_state=42)),
+        ('knn', KNeighborsClassifier(n_neighbors=5))
+    ],
+    voting='hard'
+)
+
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+
+────────────────────────
+
+[6] PLAIN TEXT 코드
+이미지 파일: images/이미지_02_code_plain_text_be213061c2.png
+
+from sklearn.ensemble import RandomForestClassifier
+
+model = RandomForestClassifier(
+    n_estimators=100,
+    max_depth=None,
+    random_state=42
+)
+
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+
+────────────────────────
+
+[7] PLAIN TEXT 코드
+이미지 파일: images/이미지_03_code_plain_text_e9e95754ce.png
+
+from sklearn.ensemble import GradientBoostingClassifier
+
+model = GradientBoostingClassifier(
+    n_estimators=100,
+    learning_rate=0.1,
+    max_depth=3,
+    random_state=42
+)
+
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+
+────────────────────────
+
+[8] PLAIN TEXT 코드
+이미지 파일: images/이미지_04_code_plain_text_7c497da179.png
+
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.metrics import accuracy_score, f1_score
+
+models = {
+    'Random Forest': RandomForestClassifier(
+        n_estimators=100,
+        random_state=42
+    ),
+    'Gradient Boosting': GradientBoostingClassifier(
+        n_estimators=100,
+        learning_rate=0.1,
+        random_state=42
+    )
+}
+
+for name, model in models.items():
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+
+    print(f'[{name}]')
+    print('Accuracy:', accuracy_score(y_test, y_pred))
+    print('F1-score:', f1_score(y_test, y_pred))
+
+────────────────────────

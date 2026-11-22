@@ -1,0 +1,161 @@
+코드 원문 백업 (필요한 경우에만 사용)
+
+[1] PLAIN TEXT 코드
+이미지 파일: images/이미지_01_code_plain_text_487332a256.png
+
+class Robot:
+    def __init__(self, name):
+        self.name = name
+
+    def move(self):
+        print(f"{self.name} is moving")
+
+robot = Robot("R1")
+robot.move()  # R1 is moving
+
+────────────────────────
+
+[2] PLAIN TEXT 코드
+이미지 파일: images/이미지_02_code_plain_text_fc8b598453.png
+
+class Animal:
+    def speak(self):
+        print("소리를 냅니다.")
+
+class Dog(Animal):
+    pass
+
+dog = Dog()
+dog.speak()
+
+────────────────────────
+
+[3] PLAIN TEXT 코드
+이미지 파일: images/이미지_03_code_plain_text_96650edfbd.png
+
+class Dog:
+    def speak(self):
+        print("멍멍")
+
+class Cat:
+    def speak(self):
+        print("야옹")
+
+for animal in [Dog(), Cat()]:
+    animal.speak()
+
+────────────────────────
+
+[4] PLAIN TEXT 코드
+이미지 파일: images/이미지_04_code_plain_text_72ce82159f.png
+
+class Robot:
+    def __init__(self):
+        self.__battery = 100
+
+    def get_battery(self):
+        return self.__battery
+
+robot = Robot()
+print(robot.get_battery())  # 100
+
+────────────────────────
+
+[5] PLAIN TEXT 코드
+이미지 파일: images/이미지_05_code_plain_text_1a7bff9049.png
+
+from abc import ABC, abstractmethod
+
+class Robot(ABC):
+    @abstractmethod
+    def move(self):
+        pass
+
+class WheeledRobot(Robot):
+    def move(self):
+        print("바퀴로 이동합니다.")
+
+robot = WheeledRobot()
+robot.move()
+
+────────────────────────
+
+[6] PLAIN TEXT 코드
+이미지 파일: images/이미지_01_code_plain_text_487332a256.png
+
+class Robot:
+    def __init__(self, name):
+        self.name = name
+
+    def move(self):
+        print(f"{self.name} is moving")
+
+robot = Robot("R1")
+robot.move()  # R1 is moving
+
+────────────────────────
+
+[7] PLAIN TEXT 코드
+이미지 파일: images/이미지_02_code_plain_text_fc8b598453.png
+
+class Animal:
+    def speak(self):
+        print("소리를 냅니다.")
+
+class Dog(Animal):
+    pass
+
+dog = Dog()
+dog.speak()
+
+────────────────────────
+
+[8] PLAIN TEXT 코드
+이미지 파일: images/이미지_03_code_plain_text_96650edfbd.png
+
+class Dog:
+    def speak(self):
+        print("멍멍")
+
+class Cat:
+    def speak(self):
+        print("야옹")
+
+for animal in [Dog(), Cat()]:
+    animal.speak()
+
+────────────────────────
+
+[9] PLAIN TEXT 코드
+이미지 파일: images/이미지_04_code_plain_text_72ce82159f.png
+
+class Robot:
+    def __init__(self):
+        self.__battery = 100
+
+    def get_battery(self):
+        return self.__battery
+
+robot = Robot()
+print(robot.get_battery())  # 100
+
+────────────────────────
+
+[10] PLAIN TEXT 코드
+이미지 파일: images/이미지_05_code_plain_text_1a7bff9049.png
+
+from abc import ABC, abstractmethod
+
+class Robot(ABC):
+    @abstractmethod
+    def move(self):
+        pass
+
+class WheeledRobot(Robot):
+    def move(self):
+        print("바퀴로 이동합니다.")
+
+robot = WheeledRobot()
+robot.move()
+
+────────────────────────

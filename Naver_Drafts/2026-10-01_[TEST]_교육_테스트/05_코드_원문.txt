@@ -1,0 +1,907 @@
+코드 원문 백업 (필요한 경우에만 사용)
+
+[1] PLAIN TEXT 코드
+이미지 파일: images/이미지_03_code_plain_text_a3a6757795.png
+
+#!/bin/bash
+
+# 화면에 메시지 출력
+echo "Hello Linux!"
+
+# 현재 위치 확인
+pwd
+
+# 파일 목록 확인
+ls -l
+
+────────────────────────
+
+[2] PLAIN TEXT 코드
+이미지 파일: images/이미지_04_code_plain_text_37a3e948ef.png
+
+# 스크립트 파일 생성
+nano hello.sh
+
+# 실행 권한 부여
+chmod +x hello.sh
+
+# 스크립트 실행
+./hello.sh
+
+────────────────────────
+
+[3] PLAIN TEXT 코드
+이미지 파일: images/이미지_05_code_plain_text_38437c3ecf.png
+
+bash hello.sh
+
+────────────────────────
+
+[4] PLAIN TEXT 코드
+이미지 파일: images/이미지_06_code_plain_text_c6fcb4056a.png
+
+#!/bin/bash
+
+echo "===== Linux System Check ====="
+
+echo "Current User:"
+whoami
+
+echo "Current Directory:"
+pwd
+
+echo "Disk Usage:"
+df -h
+
+echo "Memory Usage:"
+free -h
+
+echo "===== Check Complete ====="
+
+────────────────────────
+
+[5] PLAIN TEXT 코드
+이미지 파일: images/이미지_07_code_plain_text_2394a5dda8.png
+
+#!/bin/bash
+
+name="Robot"
+version=1
+
+echo "$name"
+echo "$version"
+
+────────────────────────
+
+[6] PLAIN TEXT 코드
+이미지 파일: images/이미지_08_code_plain_text_df6df9ba4e.png
+
+Robot
+1
+
+────────────────────────
+
+[7] PLAIN TEXT 코드
+이미지 파일: images/이미지_09_code_plain_text_b370af874f.png
+
+name = "Robot"
+
+────────────────────────
+
+[8] PLAIN TEXT 코드
+이미지 파일: images/이미지_10_code_plain_text_48e75761e4.png
+
+name="Robot"
+
+────────────────────────
+
+[9] PLAIN TEXT 코드
+이미지 파일: images/이미지_11_code_plain_text_c0d518c3c7.png
+
+#!/bin/bash
+
+current_user=$(whoami)
+current_dir=$(pwd)
+
+echo "User: $current_user"
+echo "Directory: $current_dir"
+
+────────────────────────
+
+[10] PLAIN TEXT 코드
+이미지 파일: images/이미지_12_code_plain_text_20d0b46873.png
+
+#!/bin/bash
+
+echo "Enter your name:"
+read name
+
+echo "Hello, $name!"
+
+────────────────────────
+
+[11] PLAIN TEXT 코드
+이미지 파일: images/이미지_13_code_plain_text_6f05c84ca7.png
+
+if [ 조건 ]; then
+    # 조건이 참일 때 실행
+elif [ 다른 조건 ]; then
+    # 다른 조건이 참일 때 실행
+else
+    # 모든 조건이 거짓일 때 실행
+fi
+
+────────────────────────
+
+[12] PLAIN TEXT 코드
+이미지 파일: images/이미지_14_code_plain_text_55610133fd.png
+
+#!/bin/bash
+
+number=10
+
+if [ "$number" -gt 5 ]; then
+    echo "Number is greater than 5"
+else
+    echo "Number is 5 or less"
+fi
+
+────────────────────────
+
+[13] PLAIN TEXT 코드
+이미지 파일: images/이미지_15_code_plain_text_535cfc6000.png
+
+Number is greater than 5
+
+────────────────────────
+
+[14] PLAIN TEXT 코드
+이미지 파일: images/이미지_16_code_plain_text_d931bbe47d.png
+
+#!/bin/bash
+
+status="running"
+
+if [ "$status" = "running" ]; then
+    echo "Process is running"
+else
+    echo "Process is not running"
+fi
+
+────────────────────────
+
+[15] PLAIN TEXT 코드
+이미지 파일: images/이미지_17_code_plain_text_6a270191f9.png
+
+#!/bin/bash
+
+file="test.txt"
+
+if [ -f "$file" ]; then
+    echo "File exists"
+else
+    echo "File does not exist"
+fi
+
+────────────────────────
+
+[16] PLAIN TEXT 코드
+이미지 파일: images/이미지_18_code_plain_text_e15da8898f.png
+
+#!/bin/bash
+
+for name in Robot Server Linux
+do
+    echo "$name"
+done
+
+────────────────────────
+
+[17] PLAIN TEXT 코드
+이미지 파일: images/이미지_19_code_plain_text_c22a62b44c.png
+
+Robot
+Server
+Linux
+
+────────────────────────
+
+[18] PLAIN TEXT 코드
+이미지 파일: images/이미지_20_code_plain_text_97d1c35d74.png
+
+#!/bin/bash
+
+for i in {1..5}
+do
+    echo "Count: $i"
+done
+
+────────────────────────
+
+[19] PLAIN TEXT 코드
+이미지 파일: images/이미지_21_code_plain_text_ff6f968863.png
+
+Count: 1
+Count: 2
+Count: 3
+Count: 4
+Count: 5
+
+────────────────────────
+
+[20] PLAIN TEXT 코드
+이미지 파일: images/이미지_22_code_plain_text_9ef16805f5.png
+
+#!/bin/bash
+
+count=1
+
+while [ "$count" -le 5 ]
+do
+    echo "Count: $count"
+
+    count=$((count + 1))
+done
+
+────────────────────────
+
+[21] PLAIN TEXT 코드
+이미지 파일: images/이미지_23_code_plain_text_8b8366fc67.png
+
+#!/bin/bash
+
+for i in {1..10}
+do
+    if [ "$i" -eq 5 ]; then
+        continue
+    fi
+
+    echo "$i"
+done
+
+────────────────────────
+
+[22] PLAIN TEXT 코드
+이미지 파일: images/이미지_24_code_plain_text_b061aedb87.png
+
+#!/bin/bash
+
+for file in *.txt
+do
+    if [ -f "$file" ]; then
+        echo "Found file: $file"
+    fi
+done
+
+────────────────────────
+
+[23] PLAIN TEXT 코드
+이미지 파일: images/이미지_25_code_plain_text_bb80ebf341.png
+
+# IP 주소 확인
+ip addr
+
+# 네트워크 인터페이스 상태 확인
+ip link
+
+# 라우팅 정보 확인
+ip route
+
+# 시스템 호스트 이름 확인
+hostname
+
+────────────────────────
+
+[24] PLAIN TEXT 코드
+이미지 파일: images/이미지_26_code_plain_text_1c5881ddce.png
+
+# IP 주소를 이용한 연결 확인
+ping -c 4 8.8.8.8
+
+# 도메인 이름을 이용한 연결 확인
+ping -c 4 google.com
+
+────────────────────────
+
+[25] PLAIN TEXT 코드
+이미지 파일: images/이미지_27_code_plain_text_4467cde347.png
+
+# TCP/UDP 수신 대기 소켓 확인
+ss -tuln
+
+# TCP 연결을 포함한 소켓 정보 확인
+ss -tan
+
+# 웹사이트에 HTTP 요청 보내기
+curl -I https://example.com
+
+# 도메인의 DNS 조회
+getent hosts example.com
+
+────────────────────────
+
+[26] PLAIN TEXT 코드
+이미지 파일: images/이미지_28_code_plain_text_0fb972d2d3.png
+
+# 빈 파일 생성
+touch test.txt
+
+# 디렉터리 생성
+mkdir project
+
+# 여러 단계의 디렉터리 생성
+mkdir -p project/logs
+
+────────────────────────
+
+[27] PLAIN TEXT 코드
+이미지 파일: images/이미지_29_code_plain_text_04ce016912.png
+
+# 현재 디렉터리의 파일 목록 확인
+ls -l
+
+# 파일 전체 내용 출력
+cat test.txt
+
+# 파일 내용을 페이지 단위로 확인
+less test.txt
+
+# 파일의 앞부분 확인
+head test.txt
+
+# 파일의 뒷부분 확인
+tail test.txt
+
+────────────────────────
+
+[28] PLAIN TEXT 코드
+이미지 파일: images/이미지_30_code_plain_text_54212f7b6f.png
+
+# 텍스트 편집기로 파일 열기
+nano test.txt
+
+# 파일에 내용을 추가
+echo "Hello Linux" >> test.txt
+
+# 파일을 다른 위치에 복사
+cp test.txt backup.txt
+
+# 파일 이름 변경 또는 이동
+mv test.txt new_test.txt
+
+────────────────────────
+
+[29] PLAIN TEXT 코드
+이미지 파일: images/이미지_31_code_plain_text_5fac980599.png
+
+# 파일 삭제
+rm test.txt
+
+# 비어 있는 디렉터리 삭제
+rmdir project
+
+# 디렉터리와 내부 항목 삭제
+rm -r project
+
+────────────────────────
+
+[30] PLAIN TEXT 코드
+이미지 파일: images/이미지_32_code_plain_text_9eb31fc4cc.png
+
+#!/bin/bash
+
+LOG_FILE="$HOME/system_check.log"
+
+{
+    echo "===== System Check ====="
+    echo "Date: $(date)"
+    echo "User: $(whoami)"
+
+    echo ""
+    echo "===== Disk Usage ====="
+    df -h
+
+    echo ""
+    echo "===== Memory Usage ====="
+    free -h
+
+    echo ""
+    echo "===== Check Complete ====="
+} > "$LOG_FILE" 2>&1
+
+echo "System check completed."
+echo "Log saved to: $LOG_FILE"
+
+────────────────────────
+
+[31] PLAIN TEXT 코드
+이미지 파일: images/이미지_33_code_plain_text_7b15161778.png
+
+# 실행 권한 부여
+chmod +x system_check.sh
+
+# 스크립트 실행
+./system_check.sh
+
+# 결과 확인
+cat "$HOME/system_check.log"
+
+────────────────────────
+
+[32] PLAIN TEXT 코드
+이미지 파일: images/이미지_34_code_plain_text_1638c38cec.png
+
+# 현재 사용자의 Cron 작업 편집
+crontab -e
+
+# 현재 등록된 Cron 작업 확인
+crontab -l
+
+────────────────────────
+
+[33] PLAIN TEXT 코드
+이미지 파일: images/이미지_35_code_plain_text_9ed61682ca.png
+
+분 시 일 월 요일 명령어
+
+────────────────────────
+
+[34] PLAIN TEXT 코드
+이미지 파일: images/이미지_36_code_plain_text_d31bcab553.png
+
+0 9 * * * /home/user/system_check.sh
+
+────────────────────────
+
+[35] PLAIN TEXT 코드
+이미지 파일: images/이미지_03_code_plain_text_a3a6757795.png
+
+#!/bin/bash
+
+# 화면에 메시지 출력
+echo "Hello Linux!"
+
+# 현재 위치 확인
+pwd
+
+# 파일 목록 확인
+ls -l
+
+────────────────────────
+
+[36] PLAIN TEXT 코드
+이미지 파일: images/이미지_04_code_plain_text_37a3e948ef.png
+
+# 스크립트 파일 생성
+nano hello.sh
+
+# 실행 권한 부여
+chmod +x hello.sh
+
+# 스크립트 실행
+./hello.sh
+
+────────────────────────
+
+[37] PLAIN TEXT 코드
+이미지 파일: images/이미지_05_code_plain_text_38437c3ecf.png
+
+bash hello.sh
+
+────────────────────────
+
+[38] PLAIN TEXT 코드
+이미지 파일: images/이미지_06_code_plain_text_c6fcb4056a.png
+
+#!/bin/bash
+
+echo "===== Linux System Check ====="
+
+echo "Current User:"
+whoami
+
+echo "Current Directory:"
+pwd
+
+echo "Disk Usage:"
+df -h
+
+echo "Memory Usage:"
+free -h
+
+echo "===== Check Complete ====="
+
+────────────────────────
+
+[39] PLAIN TEXT 코드
+이미지 파일: images/이미지_07_code_plain_text_2394a5dda8.png
+
+#!/bin/bash
+
+name="Robot"
+version=1
+
+echo "$name"
+echo "$version"
+
+────────────────────────
+
+[40] PLAIN TEXT 코드
+이미지 파일: images/이미지_08_code_plain_text_df6df9ba4e.png
+
+Robot
+1
+
+────────────────────────
+
+[41] PLAIN TEXT 코드
+이미지 파일: images/이미지_09_code_plain_text_b370af874f.png
+
+name = "Robot"
+
+────────────────────────
+
+[42] PLAIN TEXT 코드
+이미지 파일: images/이미지_10_code_plain_text_48e75761e4.png
+
+name="Robot"
+
+────────────────────────
+
+[43] PLAIN TEXT 코드
+이미지 파일: images/이미지_11_code_plain_text_c0d518c3c7.png
+
+#!/bin/bash
+
+current_user=$(whoami)
+current_dir=$(pwd)
+
+echo "User: $current_user"
+echo "Directory: $current_dir"
+
+────────────────────────
+
+[44] PLAIN TEXT 코드
+이미지 파일: images/이미지_12_code_plain_text_20d0b46873.png
+
+#!/bin/bash
+
+echo "Enter your name:"
+read name
+
+echo "Hello, $name!"
+
+────────────────────────
+
+[45] PLAIN TEXT 코드
+이미지 파일: images/이미지_13_code_plain_text_6f05c84ca7.png
+
+if [ 조건 ]; then
+    # 조건이 참일 때 실행
+elif [ 다른 조건 ]; then
+    # 다른 조건이 참일 때 실행
+else
+    # 모든 조건이 거짓일 때 실행
+fi
+
+────────────────────────
+
+[46] PLAIN TEXT 코드
+이미지 파일: images/이미지_14_code_plain_text_55610133fd.png
+
+#!/bin/bash
+
+number=10
+
+if [ "$number" -gt 5 ]; then
+    echo "Number is greater than 5"
+else
+    echo "Number is 5 or less"
+fi
+
+────────────────────────
+
+[47] PLAIN TEXT 코드
+이미지 파일: images/이미지_15_code_plain_text_535cfc6000.png
+
+Number is greater than 5
+
+────────────────────────
+
+[48] PLAIN TEXT 코드
+이미지 파일: images/이미지_16_code_plain_text_d931bbe47d.png
+
+#!/bin/bash
+
+status="running"
+
+if [ "$status" = "running" ]; then
+    echo "Process is running"
+else
+    echo "Process is not running"
+fi
+
+────────────────────────
+
+[49] PLAIN TEXT 코드
+이미지 파일: images/이미지_17_code_plain_text_6a270191f9.png
+
+#!/bin/bash
+
+file="test.txt"
+
+if [ -f "$file" ]; then
+    echo "File exists"
+else
+    echo "File does not exist"
+fi
+
+────────────────────────
+
+[50] PLAIN TEXT 코드
+이미지 파일: images/이미지_18_code_plain_text_e15da8898f.png
+
+#!/bin/bash
+
+for name in Robot Server Linux
+do
+    echo "$name"
+done
+
+────────────────────────
+
+[51] PLAIN TEXT 코드
+이미지 파일: images/이미지_19_code_plain_text_c22a62b44c.png
+
+Robot
+Server
+Linux
+
+────────────────────────
+
+[52] PLAIN TEXT 코드
+이미지 파일: images/이미지_20_code_plain_text_97d1c35d74.png
+
+#!/bin/bash
+
+for i in {1..5}
+do
+    echo "Count: $i"
+done
+
+────────────────────────
+
+[53] PLAIN TEXT 코드
+이미지 파일: images/이미지_21_code_plain_text_ff6f968863.png
+
+Count: 1
+Count: 2
+Count: 3
+Count: 4
+Count: 5
+
+────────────────────────
+
+[54] PLAIN TEXT 코드
+이미지 파일: images/이미지_22_code_plain_text_9ef16805f5.png
+
+#!/bin/bash
+
+count=1
+
+while [ "$count" -le 5 ]
+do
+    echo "Count: $count"
+
+    count=$((count + 1))
+done
+
+────────────────────────
+
+[55] PLAIN TEXT 코드
+이미지 파일: images/이미지_23_code_plain_text_8b8366fc67.png
+
+#!/bin/bash
+
+for i in {1..10}
+do
+    if [ "$i" -eq 5 ]; then
+        continue
+    fi
+
+    echo "$i"
+done
+
+────────────────────────
+
+[56] PLAIN TEXT 코드
+이미지 파일: images/이미지_24_code_plain_text_b061aedb87.png
+
+#!/bin/bash
+
+for file in *.txt
+do
+    if [ -f "$file" ]; then
+        echo "Found file: $file"
+    fi
+done
+
+────────────────────────
+
+[57] PLAIN TEXT 코드
+이미지 파일: images/이미지_25_code_plain_text_bb80ebf341.png
+
+# IP 주소 확인
+ip addr
+
+# 네트워크 인터페이스 상태 확인
+ip link
+
+# 라우팅 정보 확인
+ip route
+
+# 시스템 호스트 이름 확인
+hostname
+
+────────────────────────
+
+[58] PLAIN TEXT 코드
+이미지 파일: images/이미지_26_code_plain_text_1c5881ddce.png
+
+# IP 주소를 이용한 연결 확인
+ping -c 4 8.8.8.8
+
+# 도메인 이름을 이용한 연결 확인
+ping -c 4 google.com
+
+────────────────────────
+
+[59] PLAIN TEXT 코드
+이미지 파일: images/이미지_27_code_plain_text_4467cde347.png
+
+# TCP/UDP 수신 대기 소켓 확인
+ss -tuln
+
+# TCP 연결을 포함한 소켓 정보 확인
+ss -tan
+
+# 웹사이트에 HTTP 요청 보내기
+curl -I https://example.com
+
+# 도메인의 DNS 조회
+getent hosts example.com
+
+────────────────────────
+
+[60] PLAIN TEXT 코드
+이미지 파일: images/이미지_28_code_plain_text_0fb972d2d3.png
+
+# 빈 파일 생성
+touch test.txt
+
+# 디렉터리 생성
+mkdir project
+
+# 여러 단계의 디렉터리 생성
+mkdir -p project/logs
+
+────────────────────────
+
+[61] PLAIN TEXT 코드
+이미지 파일: images/이미지_29_code_plain_text_04ce016912.png
+
+# 현재 디렉터리의 파일 목록 확인
+ls -l
+
+# 파일 전체 내용 출력
+cat test.txt
+
+# 파일 내용을 페이지 단위로 확인
+less test.txt
+
+# 파일의 앞부분 확인
+head test.txt
+
+# 파일의 뒷부분 확인
+tail test.txt
+
+────────────────────────
+
+[62] PLAIN TEXT 코드
+이미지 파일: images/이미지_30_code_plain_text_54212f7b6f.png
+
+# 텍스트 편집기로 파일 열기
+nano test.txt
+
+# 파일에 내용을 추가
+echo "Hello Linux" >> test.txt
+
+# 파일을 다른 위치에 복사
+cp test.txt backup.txt
+
+# 파일 이름 변경 또는 이동
+mv test.txt new_test.txt
+
+────────────────────────
+
+[63] PLAIN TEXT 코드
+이미지 파일: images/이미지_31_code_plain_text_5fac980599.png
+
+# 파일 삭제
+rm test.txt
+
+# 비어 있는 디렉터리 삭제
+rmdir project
+
+# 디렉터리와 내부 항목 삭제
+rm -r project
+
+────────────────────────
+
+[64] PLAIN TEXT 코드
+이미지 파일: images/이미지_32_code_plain_text_9eb31fc4cc.png
+
+#!/bin/bash
+
+LOG_FILE="$HOME/system_check.log"
+
+{
+    echo "===== System Check ====="
+    echo "Date: $(date)"
+    echo "User: $(whoami)"
+
+    echo ""
+    echo "===== Disk Usage ====="
+    df -h
+
+    echo ""
+    echo "===== Memory Usage ====="
+    free -h
+
+    echo ""
+    echo "===== Check Complete ====="
+} > "$LOG_FILE" 2>&1
+
+echo "System check completed."
+echo "Log saved to: $LOG_FILE"
+
+────────────────────────
+
+[65] PLAIN TEXT 코드
+이미지 파일: images/이미지_33_code_plain_text_7b15161778.png
+
+# 실행 권한 부여
+chmod +x system_check.sh
+
+# 스크립트 실행
+./system_check.sh
+
+# 결과 확인
+cat "$HOME/system_check.log"
+
+────────────────────────
+
+[66] PLAIN TEXT 코드
+이미지 파일: images/이미지_34_code_plain_text_1638c38cec.png
+
+# 현재 사용자의 Cron 작업 편집
+crontab -e
+
+# 현재 등록된 Cron 작업 확인
+crontab -l
+
+────────────────────────
+
+[67] PLAIN TEXT 코드
+이미지 파일: images/이미지_35_code_plain_text_9ed61682ca.png
+
+분 시 일 월 요일 명령어
+
+────────────────────────
+
+[68] PLAIN TEXT 코드
+이미지 파일: images/이미지_36_code_plain_text_d31bcab553.png
+
+0 9 * * * /home/user/system_check.sh
+
+────────────────────────

@@ -1,0 +1,55 @@
+코드 원문 백업 (필요한 경우에만 사용)
+
+[1] C++ 코드
+이미지 파일: images/이미지_01_code_c__6ce4488633.png
+
+vector<int> v = {0, 1, 2, 3, 4};
+auto it = v.begin();
+v.erase(it + 1); // 인덱스 1의 원소(1) 삭제 -> {0, 2, 3, 4}
+
+for (auto iter = v.begin(); iter != v.end(); iter++) {
+    cout << *iter << " "; // 역참조(*)로 원소 값 접근
+}
+
+────────────────────────
+
+[2] C++ 코드
+이미지 파일: images/이미지_02_code_c__728699745d.png
+
+unordered_map<string, string> um;
+um.insert({"apple", "사과"});
+um["apple"] = "사과봉봉"; // 기존 값 덮어쓰기
+
+auto it = um.find("banana");
+if (it != um.end()) {
+    cout << it->first << " : " << it->second << '\n';
+}
+
+────────────────────────
+
+[3] C++ 코드
+이미지 파일: images/이미지_01_code_c__6ce4488633.png
+
+vector<int> v = {0, 1, 2, 3, 4};
+auto it = v.begin();
+v.erase(it + 1); // 인덱스 1의 원소(1) 삭제 -> {0, 2, 3, 4}
+
+for (auto iter = v.begin(); iter != v.end(); iter++) {
+    cout << *iter << " "; // 역참조(*)로 원소 값 접근
+}
+
+────────────────────────
+
+[4] C++ 코드
+이미지 파일: images/이미지_02_code_c__728699745d.png
+
+unordered_map<string, string> um;
+um.insert({"apple", "사과"});
+um["apple"] = "사과봉봉"; // 기존 값 덮어쓰기
+
+auto it = um.find("banana");
+if (it != um.end()) {
+    cout << it->first << " : " << it->second << '\n';
+}
+
+────────────────────────
