@@ -378,11 +378,11 @@
       "date": "2026-11-15"
     }
   },
-  "last_scan": "2026-11-23T22:55:16.870554+00:00",
+  "last_scan": "2026-11-24T20:36:39.536926+00:00",
   "scan_window": {
-    "scope": "Yesterday",
-    "start": "2026-11-23",
-    "end": "2026-11-23",
+    "scope": "Today",
+    "start": "2026-11-25",
+    "end": "2026-11-25",
     "last_edited_after": null,
     "lookback_days": null,
     "timezone": "Asia/Seoul"
