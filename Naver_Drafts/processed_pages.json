@@ -376,13 +376,21 @@
       "status": "draft",
       "title": "NVIDIA USD, USDA, USDC, USDZ의 차이점은 무엇인가?",
       "date": "2026-11-15"
+    },
+    "422d9e12-9df7-80f5-84ba-e0693319b79e": {
+      "folder": "2026-11-25_DLI_3일차_DAY_02._Isaac_Sim_로봇_센서_구성과_ROS_2_연동_(22)",
+      "last_edited_time": "2026-11-26T03:07:00.000Z",
+      "content_hash": "13cfce93a578f3b83581fabe0372037ad4007d5a903cadde3348a4d7d3078f03",
+      "status": "draft",
+      "title": "DLI 3일차 | DAY 02. Isaac Sim 로봇 센서 구성과 ROS 2 연동 (2/2)",
+      "date": "2026-11-25"
     }
   },
-  "last_scan": "2026-11-25T19:52:55.802760+00:00",
+  "last_scan": "2026-11-26T04:06:34.142295+00:00",
   "scan_window": {
-    "scope": "Today",
-    "start": "2026-11-26",
-    "end": "2026-11-26",
+    "scope": "Yesterday",
+    "start": "2026-11-25",
+    "end": "2026-11-25",
     "last_edited_after": null,
     "lookback_days": null,
     "timezone": "Asia/Seoul"

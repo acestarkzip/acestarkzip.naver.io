@@ -1,0 +1,43 @@
+코드 원문 백업 (필요한 경우에만 사용)
+
+[1] BASH 코드
+이미지 파일: images/이미지_08_code_bash_10b06cc9af.png
+
+ros2 topic list | grep -E 'scan_lidar|rgb'
+
+────────────────────────
+
+[2] BASH 코드
+이미지 파일: images/이미지_09_code_bash_cdc012b92d.png
+
+ros2 topic hz /scan_lidar
+
+────────────────────────
+
+[3] BASH 코드
+이미지 파일: images/이미지_10_code_bash_0bb4c61d3a.png
+
+ros2 topic echo /scan_lidar --once
+
+────────────────────────
+
+[4] BASH 코드
+이미지 파일: images/이미지_08_code_bash_10b06cc9af.png
+
+ros2 topic list | grep -E 'scan_lidar|rgb'
+
+────────────────────────
+
+[5] BASH 코드
+이미지 파일: images/이미지_09_code_bash_cdc012b92d.png
+
+ros2 topic hz /scan_lidar
+
+────────────────────────
+
+[6] BASH 코드
+이미지 파일: images/이미지_10_code_bash_0bb4c61d3a.png
+
+ros2 topic echo /scan_lidar --once
+
+────────────────────────
