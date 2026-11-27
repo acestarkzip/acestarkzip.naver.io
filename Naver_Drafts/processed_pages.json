@@ -384,13 +384,21 @@
       "status": "draft",
       "title": "DLI 3일차 | DAY 02. Isaac Sim 로봇 센서 구성과 ROS 2 연동 (2/2)",
       "date": "2026-11-25"
+    },
+    "424d9e12-9df7-80df-8a5d-ef6ac34ae47f": {
+      "folder": "2026-11-26_DLI_4일차_DAY_03._Ingesting_Robot_Assets_–_URDF_기반_로봇_가져오기와_시뮬레이션",
+      "last_edited_time": "2026-11-26T06:34:00.000Z",
+      "content_hash": "d869a39b9b24f233743071fd64e01cfa14f704b94de8cabbb88a3525d51074e2",
+      "status": "draft",
+      "title": "DLI 4일차 | DAY 03. Ingesting Robot Assets – URDF 기반 로봇 가져오기와 시뮬레이션",
+      "date": "2026-11-26"
     }
   },
-  "last_scan": "2026-11-26T19:31:30.851254+00:00",
+  "last_scan": "2026-11-27T04:08:56.766330+00:00",
   "scan_window": {
-    "scope": "Today",
-    "start": "2026-11-27",
-    "end": "2026-11-27",
+    "scope": "Yesterday",
+    "start": "2026-11-26",
+    "end": "2026-11-26",
     "last_edited_after": null,
     "lookback_days": null,
     "timezone": "Asia/Seoul"
