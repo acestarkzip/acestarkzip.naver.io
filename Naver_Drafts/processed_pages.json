@@ -392,13 +392,21 @@
       "status": "draft",
       "title": "DLI 4일차 | DAY 03. Ingesting Robot Assets – URDF 기반 로봇 가져오기와 시뮬레이션",
       "date": "2026-11-26"
+    },
+    "425d9e12-9df7-80aa-8aca-e3b613c184fa": {
+      "folder": "2026-11-27_DLI_#05_-_Best_Practices_for_Robotics_and_OpenUSD_로봇_에셋_구성·최적화와_IK_통합_실습",
+      "last_edited_time": "2026-11-27T13:52:00.000Z",
+      "content_hash": "4a0821e4dbda9d1b969a019e5243c2fd7bcd5c90afd85a474ec3a56d992044e3",
+      "status": "draft",
+      "title": "DLI #05 - Best Practices for Robotics and OpenUSD | 로봇 에셋 구성·최적화와 IK 통합 실습",
+      "date": "2026-11-27"
     }
   },
-  "last_scan": "2026-11-27T19:26:35.152125+00:00",
+  "last_scan": "2026-11-28T03:51:21.981305+00:00",
   "scan_window": {
-    "scope": "Today",
-    "start": "2026-11-28",
-    "end": "2026-11-28",
+    "scope": "Yesterday",
+    "start": "2026-11-27",
+    "end": "2026-11-27",
     "last_edited_after": null,
     "lookback_days": null,
     "timezone": "Asia/Seoul"

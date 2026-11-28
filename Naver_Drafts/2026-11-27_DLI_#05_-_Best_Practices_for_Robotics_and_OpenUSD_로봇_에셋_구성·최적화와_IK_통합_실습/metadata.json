@@ -1,0 +1,15 @@
+{
+  "notion_page_id": "425d9e12-9df7-80aa-8aca-e3b613c184fa",
+  "title": "DLI #05 - Best Practices for Robotics and OpenUSD | 로봇 에셋 구성·최적화와 IK 통합 실습",
+  "date": "2026-11-27",
+  "memo": "URDF와 USD 기반의 로봇 에셋 구조를 이해하고, Mesh Merge Tool을 활용한 최적화부터 UR10e와 그리퍼 구성, 창고 시뮬레이션 환경 구축 및 IK 기반 로봇팔 제어까지 실습합니다.",
+  "tags": [
+    "교육",
+    "DLI"
+  ],
+  "last_edited_time": "2026-11-27T13:52:00.000Z",
+  "content_hash": "4a0821e4dbda9d1b969a019e5243c2fd7bcd5c90afd85a474ec3a56d992044e3",
+  "notion_url": "https://app.notion.com/p/DLI-05-Best-Practices-for-Robotics-and-OpenUSD-IK-425d9e129df780aa8acae3b613c184fa",
+  "exported_at": "2026-11-28T03:51:21.981191+00:00",
+  "status": "draft"
+}
